@@ -1,9 +1,9 @@
 <?php
-
 namespace App\Models;
 
 use App\Plugins\Tools\DbConstraint;
 use App\Plugins\Tools\Validator;
+use Phalcon\DI;
 
 class TestingAbstractFactory extends FactoryBase
 {
@@ -14,6 +14,7 @@ class TestingAbstractFactory extends FactoryBase
         'primary_key'   => 'taf_id',
         'columns'   => array(
             'taf_id'    => array('type' => \PDO::PARAM_INT),
+            'tafc_id'    => array('type' => \PDO::PARAM_INT),
             'taf_name'    => array('type' => \PDO::PARAM_STR),
             'taf_count_int'    => array('type' => \PDO::PARAM_INT),
             'taf_count_float'    => array('type' => \PDO::PARAM_STR)
@@ -36,10 +37,46 @@ class TestingAbstractFactory extends FactoryBase
         if ($boolIsUpdating) {
             Validator::validate(DbConstraint::isInteger('taf_id', array('min' => 1)), 'Taf id must be an int > 0');
         }
+        Validator::validate(DbConstraint::isInteger('tafc_id', array('min' => 1)), 'Tafc id must be an int > 0');
         Validator::validate(DbConstraint::isString('taf_name', array('max' => 50)), 'Taf name must be a string 50 char max');
         Validator::validate(DbConstraint::isInteger('taf_count_int', array('min' => 0)), 'Taf count int must be an int > 0');
         Validator::validate(DbConstraint::isFloat('taf_count_float', array('min' => 0)), 'Taf count float must be an float > 0');
 
         return Validator::isValid();
+    }
+
+    public static function getEvenNumber()
+    {
+        $hashOptions = array(
+//            'join'  => array(
+//                'left' => array('App\Models\TestingAbstractFactoryCategory')
+//            ),
+//            'where' => array(
+////                '(taf_count_int % 2)'  => array(
+////                    'clause'    => 'IN',
+////                    'value'     => array(0)
+////                )
+//                'tafc_name'  => array(
+//                    'clause' => '=',
+//                    'value' => 'ugaduuu'
+//                )
+//            ),
+            // the same using
+//            'having'    => array(
+//                'modulo'  => array(
+//                    'clause'    => '=',
+//                    'value'     => 0
+//                )
+//            )
+            'limit' => array(
+                'start' => 3,
+                'size' => 12
+            ),
+            'order' => array(
+                'modulo'    => 'ASC',
+                'taf_count_int'    => 'DESC',
+            )
+        );
+        return self::getList(array('taf_id', 'taf_name', 'taf_count_int', 'taf_count_int % 2 as modulo'), $hashOptions);
     }
 }

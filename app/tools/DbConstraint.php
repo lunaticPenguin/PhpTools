@@ -90,4 +90,31 @@ class DbConstraint extends Constraint
         return isset(static::$hashData[$strFieldName])
         && parent::isArray(static::$hashData[$strFieldName], $hashOptions);
     }
+
+    /**
+     * Allows to check if an internal variable is identical to another internal variable
+     *
+     * @param $strFieldNameA
+     * @param $strFieldNameB
+     * @return boolean
+     */
+    public static function isIdenticalTo($strFieldNameA, $strFieldNameB)
+    {
+        return isset(static::$hashData[$strFieldNameA]) && isset(static::$hashData[$strFieldNameB])
+        && static::$hashData[$strFieldNameA] === static::$hashData[$strFieldNameB];
+    }
+
+    /**
+     * Allows to check if an internal variable is unique in comparison to a column A
+     * inside a table B in a database C
+     *
+     * @param $strFieldName
+     * @param array $hashOptions mapping tables options
+     * @return boolean
+     */
+    public static function isUnique($strFieldName, array $hashOptions = array())
+    {
+        // TODO
+        return false;
+    }
 }

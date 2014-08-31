@@ -2,7 +2,7 @@
 
 namespace App\Plugins\Tools;
 
-class Constraint extends \Phalcon\Mvc\User\Plugin
+class Constraint
 {
     const ARRAY_CONTAINS_ALL_KEYS = 1;
     const ARRAY_CONTAINS_ALL_VALUES = 2;
@@ -67,7 +67,7 @@ class Constraint extends \Phalcon\Mvc\User\Plugin
     }
 
     /**
-     * Internal check function for all number (int, float)..
+     * Internal check function for all numbers' types (int, float)..
      * This function can handle a test for an optional range check.
      *
      * @param $mixedNumber
@@ -119,7 +119,7 @@ class Constraint extends \Phalcon\Mvc\User\Plugin
     }
 
     /**
-     * Allows to determine if an array has[n't] keys or values,
+     * Allows to determine if an array has keys and/or values,
      * or if it's strictly identical to another array (keys + values)
      *
      * @param array $arrayInput
