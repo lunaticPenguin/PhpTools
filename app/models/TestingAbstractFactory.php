@@ -1,14 +1,14 @@
 <?php
 namespace App\Models;
 
-use App\Plugins\Tools\DbConstraint;
-use App\Plugins\Tools\Validator;
+use App\Tools\DbConstraint;
+use App\Tools\Validator;
 use Phalcon\DI;
 
 class TestingAbstractFactory extends FactoryBase
 {
     protected static $hashInfos = array(
-        'database'      => 'bat_core',
+        'database'      => 'phptools',
         'table'         => 'testing_abstract_factory',
         'alias'         => 'taf',
         'primary_key'   => 'taf_id',
@@ -34,13 +34,11 @@ class TestingAbstractFactory extends FactoryBase
     {
         Validator::reset();
         DbConstraint::bindData($hashData);
-        if ($boolIsUpdating) {
-            Validator::validate(DbConstraint::isInteger('taf_id', array('min' => 1)), 'Taf id must be an int > 0');
-        }
-        Validator::validate(DbConstraint::isInteger('tafc_id', array('min' => 1)), 'Tafc id must be an int > 0');
-        Validator::validate(DbConstraint::isString('taf_name', array('max' => 50)), 'Taf name must be a string 50 char max');
-        Validator::validate(DbConstraint::isInteger('taf_count_int', array('min' => 0)), 'Taf count int must be an int > 0');
-        Validator::validate(DbConstraint::isFloat('taf_count_float', array('min' => 0)), 'Taf count float must be an float > 0');
+        Validator::validate(DbConstraint::isInteger('taf_id', array('required' => $boolIsUpdating, 'min' => 1)), 'Taf id must be an int > 0');
+        Validator::validate(DbConstraint::isInteger('tafc_id', array('required' => !$boolIsUpdating, 'min' => 1)), 'Tafc id must be an int > 0');
+        Validator::validate(DbConstraint::isString('taf_name', array('required' => !$boolIsUpdating, 'max' => 50)), 'Taf name must be a string 50 char max');
+        Validator::validate(DbConstraint::isInteger('taf_count_int', array('required' => !$boolIsUpdating, 'min' => 0)), 'Taf count int must be an int > 0');
+        Validator::validate(DbConstraint::isFloat('taf_count_float', array('required' => !$boolIsUpdating, 'min' => 0)), 'Taf count float must be an float > 0');
 
         return Validator::isValid();
     }

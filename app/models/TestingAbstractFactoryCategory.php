@@ -1,14 +1,14 @@
 <?php
 namespace App\Models;
 
-use App\Plugins\Tools\DbConstraint;
-use App\Plugins\Tools\Validator;
+use App\Tools\DbConstraint;
+use App\Tools\Validator;
 use Phalcon\DI;
 
 class TestingAbstractFactoryCategory extends FactoryBase
 {
     protected static $hashInfos = array(
-        'database'      => 'bat_core',
+        'database'      => 'phptools',
         'table'         => 'testing_abstract_factory_category',
         'alias'         => 'tafc',
         'primary_key'   => 'tafc_id',
@@ -31,10 +31,8 @@ class TestingAbstractFactoryCategory extends FactoryBase
     {
         Validator::reset();
         DbConstraint::bindData($hashData);
-        if ($boolIsUpdating) {
-            Validator::validate(DbConstraint::isInteger('taf_id', array('min' => 1)), 'Taf id must be an int > 0');
-        }
-        Validator::validate(DbConstraint::isString('taf_name', array('max' => 50)), 'Taf name must be a string 50 char max');
+        Validator::validate(DbConstraint::isInteger('taf_id', array('required' => $boolIsUpdating, 'min' => 1)), 'Taf id must be an int > 0');
+        Validator::validate(DbConstraint::isString('taf_name', array('required' => !$boolIsUpdating, 'max' => 50)), 'Taf name must be a string 50 char max');
 
         return Validator::isValid();
     }

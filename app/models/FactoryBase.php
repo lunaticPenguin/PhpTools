@@ -1,23 +1,21 @@
 <?php
 namespace App\Models;
 
-use App\Plugins\Tools\Validator;
-use Phalcon\DI;
-use Phalcon\Mvc\Model;
+use App\Tools\Validator;
 
 abstract class FactoryBase
 {
     /**
      * Used during a row's update when an extra parameter is passed, listing which fields are authorized for update or not.
-     * LIST_WHITE means that the columns passed are only fields which can be updated among all available columns.
+     * UPDATE_LIST_WHITE means that the columns passed are only fields which can be updated among all available columns.
      */
-    const LIST_WHITE = 0;
+    const UPDATE_LIST_WHITE = 0;
 
     /**
      * Used during a row's update when an extra parameter is passed, listing which columns are authorized for update or not.
-     * LIST_BLACK means that the columns passed are only columns which cannot be updated among all available columns.
+     * UPDATE_LIST_BLACK means that the columns passed are only columns which cannot be updated among all available columns.
      */
-    const LIST_BLACK = 1;
+    const UPDATE_LIST_BLACK = 1;
 
     /**
      * Mandatory static attributes for children classes.
@@ -34,6 +32,8 @@ abstract class FactoryBase
     );
     
     /**
+     * PDO instance.
+     * (A better way is to use the DI pattern, but here the library can be used in many projects)
      * @var \PDO instance
      */
     protected static $objDb;
@@ -56,13 +56,13 @@ abstract class FactoryBase
      */
     public static function setPdoInstance(\PDO $objDb)
     {
-	self::$objDb = $objDb;
+	    static::$objDb = $objDb;
     }
 
     /**
      * Allows to indicate which column needs to have specific type with several options
      * before any insert or update query attempts.
-     * Method to override to keep coherent models.
+     * This method MUST be overridden to keep coherent models.
      *
      * @param array $hashData
      * @param bool $boolIsUpdating
@@ -103,7 +103,7 @@ abstract class FactoryBase
             implode(',', $hashKeys)
         );
 
-        $objStatement = self::$objDb->prepare($strSql);
+        $objStatement = static::$objDb->prepare($strSql);
 
         // values bind
         foreach ($hashValues as $strColumn => $mixedValue) {
@@ -112,17 +112,18 @@ abstract class FactoryBase
                 : \PDO::PARAM_STR;
             $objStatement->bindValue(':' .  $strColumn, $mixedValue, $intType);
         }
-        return $objStatement->execute() ? (int) $objDb->lastInsertId() : 0;
+
+        return $objStatement->execute() ? (int) static::$objDb->lastInsertId() : 0;
     }
 
     /**
      * Allows to update a row whose an identifier is provided
      * @param array $hashData
-     * @param array $arrayList columns' list (optional)
+     * @param array $arrayColumnList columns' list (optional)
      * @param integer $intFlagList column's list type (included/excluded) (optional)
      * @return integer number of affected rows
      */
-    public static function updateById(array $hashData, array $arrayList = array(), $intFlagList = self::LIST_BLACK)
+    public static function updateById(array $hashData, array $arrayColumnList = array(), $intFlagList = self::UPDATE_LIST_BLACK)
     {
         Validator::reset();
         if (!static::validateData($hashData, true)) {
@@ -133,13 +134,13 @@ abstract class FactoryBase
         $hashValues = array();
         foreach ($hashData as $strColumn => $mixedValue) {
             if (static::$hashInfos['primary_key'] !== $strColumn && isset(static::$hashInfos['columns'][$strColumn])) {
-                if (!empty($arrayList)) {
-                    if ($intFlagList === self::LIST_BLACK) {
-                        if (!in_array($strColumn, $arrayList)) {
+                if (!empty($arrayColumnList)) {
+                    if ($intFlagList === self::UPDATE_LIST_BLACK) {
+                        if (!in_array($strColumn, $arrayColumnList)) {
                             $hashSqlParts[$strColumn] = $strColumn . '=:' . $strColumn;
                         }
                     } else {
-                        if (in_array($strColumn, $arrayList)) {
+                        if (in_array($strColumn, $arrayColumnList)) {
                             $hashSqlParts[$strColumn] = $strColumn . '=:' . $strColumn;
                         }
                     }
@@ -158,7 +159,7 @@ abstract class FactoryBase
             static::$hashInfos['alias']
         );
 
-        $objStatement = self::$objDb->prepare($strSql);
+        $objStatement = static::$objDb->prepare($strSql);
 
         // values bind
         foreach ($hashValues as $strColumn => $mixedValue) {
@@ -195,7 +196,7 @@ abstract class FactoryBase
             implode(',', $arrayIds)
         );
 
-        $objStatement = self::$objDb->prepare($strSql);
+        $objStatement = static::$objDb->prepare($strSql);
 
         $objStatement->execute();
         return $objStatement->rowCount();
@@ -249,7 +250,7 @@ abstract class FactoryBase
             static::$hashInfos['alias']
         );
         
-        $objStatement = self::$objDb->prepare($strSql);
+        $objStatement = static::$objDb->prepare($strSql);
         $objStatement->bindValue(':' . static::$hashInfos['primary_key'], $intId, \PDO::PARAM_INT);
         $objStatement->execute();
 
@@ -290,7 +291,7 @@ abstract class FactoryBase
             static::$hashInfos['primary_key']
         );
         
-        $objStatement = self::$objDb->prepare($strSql);
+        $objStatement = static::$objDb->prepare($strSql);
 
         foreach ($arrayIds as $intKey => $intId) {
             $objStatement->bindValue(':' . static::$hashInfos['primary_key'] . '_' . $intKey, $intId, \PDO::PARAM_INT);
@@ -414,7 +415,7 @@ abstract class FactoryBase
         //var_dump($strSql);
 
         
-        $objStatement = self::$objDb->prepare($strSql);
+        $objStatement = static::$objDb->prepare($strSql);
         $objStatement->execute();
 
         return array(

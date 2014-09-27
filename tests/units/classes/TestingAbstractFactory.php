@@ -14,9 +14,9 @@ class TestingAbstractFactory extends atoum
 {
     private function insertNewRow(array $hashDataToOverride = array())
     {
-	TAF::setPDOInstance(DI::getDefault()->get('db'));
         $hashData = array_merge(
             array(
+                'tafc_id'   => 1,
                 'taf_name' => 'test lol',
                 'taf_count_int' => 42,
                 'taf_count_float' => 42.05
@@ -28,7 +28,7 @@ class TestingAbstractFactory extends atoum
 
     public function testCreate()
     {
-	TAF::setPDOInstance(DI::getDefault()->get('db'));
+        TAF::setPDOInstance(DI::getDefault()->get('db'));
         $this->integer(TAF::create(array()))->isEqualTo(0);
 
         $intId = $this->insertNewRow();
@@ -39,7 +39,7 @@ class TestingAbstractFactory extends atoum
 
     public function testDeleteById()
     {
-	TAF::setPDOInstance(DI::getDefault()->get('db'));
+        TAF::setPdoInstance(DI::getDefault()->get('db'));
         $intId = $this->insertNewRow();
         $this->integer($intId)->isGreaterThan(0);
 
@@ -49,7 +49,7 @@ class TestingAbstractFactory extends atoum
 
     public function testDeleteByListId()
     {
-	TAF::setPDOInstance(DI::getDefault()->get('db'));
+        TAF::setPdoInstance(DI::getDefault()->get('db'));
         $this->integer(TAF::deleteByListId(array(-1, 0, -32.4)))->isEqualTo(0);
         $arrayIds = array();
         for ($i = 0 ; $i < 5 ; ++$i) {
@@ -70,7 +70,7 @@ class TestingAbstractFactory extends atoum
 
     public function testUpdate()
     {
-	TAF::setPDOInstance(DI::getDefault()->get('db'));
+        TAF::setPdoInstance(DI::getDefault()->get('db'));
         // test that it fails
         $hashDataUpdated = array(
             'taf_id'            => 0, // wrong id
@@ -120,7 +120,7 @@ class TestingAbstractFactory extends atoum
 
     public function testGetById()
     {
-	TAF::setPDOInstance(DI::getDefault()->get('db'));
+        TAF::setPdoInstance(DI::getDefault()->get('db'));
         $intId = $this->insertNewRow();
         $this->integer($intId)->isGreaterThan(0);
 
@@ -137,7 +137,7 @@ class TestingAbstractFactory extends atoum
 
     public function testGetByListId()
     {
-	TAF::setPDOInstance(DI::getDefault()->get('db'));
+        TAF::setPdoInstance(DI::getDefault()->get('db'));
         $arrayIds = array();
         $arrayNames = array('plonk', 'plink', 'plunk');
         foreach ($arrayNames as $strName) {
@@ -157,5 +157,62 @@ class TestingAbstractFactory extends atoum
             $this->float((float) $arrayTAFInfos[$intKey]['taf_count_float'])->isEqualTo(42.05);
         }
         $this->integer(TAF::deleteByListId($arrayIds))->isEqualTo(3);
+    }
+
+    public function testGetModelInformation()
+    {
+        $this->string(TAF::getModelInformation())->isEqualTo('testing_abstract_factory');
+        $this->string(TAF::getModelInformation('wjdfhj'))->isEqualTo('testing_abstract_factory')
+        ;
+        $this->string(TAF::getModelInformation('database'))->isEqualTo('phptools');
+        $this->string(TAF::getModelInformation('table'))->isEqualTo('testing_abstract_factory');
+        $this->string(TAF::getModelInformation('primary_key'))->isEqualTo('taf_id');
+        $this->string(TAF::getModelInformation('alias'))->isEqualTo('taf');
+        $this->array(TAF::getModelInformation('columns'))
+            ->isNotEmpty()
+            ->hasKeys(array(
+                    'taf_id', 'tafc_id', 'taf_name', 'taf_count_int', 'taf_count_float'
+                )
+            );
+    }
+
+    public function testGetList()
+    {
+        TAF::setPdoInstance(DI::getDefault()->get('db'));
+        $hashOptions = array(
+//            'join'  => array(
+//                'left' => array('App\Models\TestingAbstractFactoryCategory')
+//            ),
+//            'where' => array(
+////                '(taf_count_int % 2)'  => array(
+////                    'clause'    => 'IN',
+////                    'value'     => array(0)
+////                )
+//                'tafc_name'  => array(
+//                    'clause' => '=',
+//                    'value' => 'ugaduuu'
+//                )
+//            ),
+            // the same using
+//            'having'    => array(
+//                'modulo'  => array(
+//                    'clause'    => '=',
+//                    'value'     => 0
+//                )
+//            )
+            'limit' => array(
+                'start' => 3,
+                'size' => 12
+            ),
+            'order' => array(
+                'modulo'    => 'ASC',
+                'taf_count_int'    => 'DESC',
+            )
+        );
+
+        $hashResult = TAF::getList(array('taf_id', 'taf_name', 'taf_count_int', 'taf_count_int % 2 as modulo'), $hashOptions);
+        $this->array($hashResult)->hasSize(2)->hasKeys(array('results', 'count'));
+        $this->integer($hashResult['count'])->isEqualTo(0);
+        $this->array($hashResult['results'])->isEmpty();
     }
 }
