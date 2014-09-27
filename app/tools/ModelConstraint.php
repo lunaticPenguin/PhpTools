@@ -2,7 +2,7 @@
 
 namespace App\Tools;
 
-class DbConstraint extends Constraint
+class ModelConstraint
 {
     /**
      * @var array
@@ -19,7 +19,7 @@ class DbConstraint extends Constraint
     protected function commonCheck($strMethodName, $strFieldName, array $hashOptions)
     {
         return isset(static::$hashData[$strFieldName])
-        && parent::$strMethodName(static::$hashData[$strFieldName], $hashOptions);
+        && Constraint::$strMethodName(static::$hashData[$strFieldName], $hashOptions);
     }
 
     /**
@@ -113,6 +113,11 @@ class DbConstraint extends Constraint
         if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
             return true;
         }
+
+        if (!isset(static::$hashData[$strFieldName]) || !is_array(static::$hashData[$strFieldName])) {
+            return false;
+        }
+
         return self::commonCheck('isArray', $strFieldName, $hashOptions);
     }
 
@@ -137,7 +142,7 @@ class DbConstraint extends Constraint
      * @param array $hashOptions mapping tables options
      * @return boolean
      */
-    public static function isUnique($strFieldName, array $hashOptions = array())
+    public static function alreadyExists($strFieldName, array $hashOptions = array())
     {
         // TODO
         return false;

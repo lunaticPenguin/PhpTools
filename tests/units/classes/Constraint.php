@@ -107,12 +107,6 @@ class Constraint extends atoum
 
     public function testIsArray()
     {
-        $this->boolean(C::isArray(1))->isFalse();
-        $this->boolean(C::isArray(1.2))->isFalse();
-        $this->boolean(C::isArray(new \stdClass()))->isFalse();
-        $this->boolean(C::isArray(true))->isFalse();
-        $this->boolean(C::isArray(false))->isFalse();
-
         $this->boolean(C::isArray(array()))->isTrue();
         $this->boolean(C::isArray(array('a', 'b')))->isTrue();
 

@@ -1,7 +1,7 @@
 <?php
 namespace App\Models;
 
-use App\Tools\DbConstraint;
+use App\Tools\ModelConstraint;
 use App\Tools\Validator;
 use Phalcon\DI;
 
@@ -33,12 +33,12 @@ class TestingAbstractFactory extends FactoryBase
     protected static function validateData(array &$hashData, $boolIsUpdating)
     {
         Validator::reset();
-        DbConstraint::bindData($hashData);
-        Validator::validate(DbConstraint::isInteger('taf_id', array('required' => $boolIsUpdating, 'min' => 1)), 'Taf id must be an int > 0');
-        Validator::validate(DbConstraint::isInteger('tafc_id', array('required' => !$boolIsUpdating, 'min' => 1)), 'Tafc id must be an int > 0');
-        Validator::validate(DbConstraint::isString('taf_name', array('required' => !$boolIsUpdating, 'max' => 50)), 'Taf name must be a string 50 char max');
-        Validator::validate(DbConstraint::isInteger('taf_count_int', array('required' => !$boolIsUpdating, 'min' => 0)), 'Taf count int must be an int > 0');
-        Validator::validate(DbConstraint::isFloat('taf_count_float', array('required' => !$boolIsUpdating, 'min' => 0)), 'Taf count float must be an float > 0');
+        ModelConstraint::bindData($hashData);
+        Validator::validate(ModelConstraint::isInteger('taf_id', array('required' => $boolIsUpdating, 'min' => 1)), 'Taf id must be an int > 0');
+        Validator::validate(ModelConstraint::isInteger('tafc_id', array('required' => !$boolIsUpdating, 'min' => 1)), 'Tafc id must be an int > 0');
+        Validator::validate(ModelConstraint::isString('taf_name', array('required' => !$boolIsUpdating, 'max' => 50)), 'Taf name must be a string 50 char max');
+        Validator::validate(ModelConstraint::isInteger('taf_count_int', array('required' => !$boolIsUpdating, 'min' => 0)), 'Taf count int must be an int > 0');
+        Validator::validate(ModelConstraint::isFloat('taf_count_float', array('required' => !$boolIsUpdating, 'min' => 0)), 'Taf count float must be an float > 0');
 
         return Validator::isValid();
     }

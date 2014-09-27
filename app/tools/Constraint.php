@@ -127,7 +127,7 @@ class Constraint
      *
      * @return boolean
      */
-    public static function isArray($arrayInput, array $hashOptions = array())
+    public static function isArray(array $arrayInput, array $hashOptions = array())
     {
         if (!is_array($arrayInput)) {
             return false;
