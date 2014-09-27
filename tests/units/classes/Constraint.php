@@ -1,13 +1,17 @@
 <?php
 
-namespace App\Plugins\Tools\Tests\Units;
+namespace App\Tools\Tests\Units;
 
 $config = include __DIR__ . '/../../../app/config/config.php';
 include __DIR__ . '/../../../app/config/loader.php';
 
 use \atoum;
-use App\Plugins\Tools\Constraint as C;
+use App\Tools\Constraint as C;
 
+/**
+ * Class Constraint
+ * @package App\Plugins\Tools\Tests\Units
+ */
 class Constraint extends atoum
 {
     public function testIsInteger()
@@ -103,6 +107,12 @@ class Constraint extends atoum
 
     public function testIsArray()
     {
+        $this->boolean(C::isArray(1))->isFalse();
+        $this->boolean(C::isArray(1.2))->isFalse();
+        $this->boolean(C::isArray(new \stdClass()))->isFalse();
+        $this->boolean(C::isArray(true))->isFalse();
+        $this->boolean(C::isArray(false))->isFalse();
+
         $this->boolean(C::isArray(array()))->isTrue();
         $this->boolean(C::isArray(array('a', 'b')))->isTrue();
 

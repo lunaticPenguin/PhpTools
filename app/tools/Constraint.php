@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Plugins\Tools;
+namespace App\Tools;
 
 class Constraint
 {
@@ -12,7 +12,7 @@ class Constraint
      * Allows to check if a variable is a string, and if it has the specified min/max length if so
      *
      * @param $strInput
-     * @param array $hashOptions : optionnal min, max values
+     * @param array $hashOptions : optional min, max values
      *
      * @return boolean
      */
@@ -102,7 +102,7 @@ class Constraint
      * @param $boolInput
      * @return mixed
      */
-    public static function isBoolean($boolInput)
+    public static function isBoolean($boolInput, array $hashOptions = array())
     {
         return is_bool($boolInput);
     }
@@ -113,7 +113,7 @@ class Constraint
      * @param $strInput
      * @return bool
      */
-    public static function isEmail($strInput)
+    public static function isEmail($strInput, array $hashOptions = array())
     {
         return is_string($strInput) && filter_var($strInput, FILTER_VALIDATE_EMAIL);
     }
@@ -127,8 +127,12 @@ class Constraint
      *
      * @return boolean
      */
-    public static function isArray(array $arrayInput, array $hashOptions = array())
+    public static function isArray($arrayInput, array $hashOptions = array())
     {
+        if (!is_array($arrayInput)) {
+            return false;
+        }
+
         if (!isset($hashOptions['flag'])
             ||
             isset($hashOptions['flag']) && !in_array($hashOptions['flag'], array(1, 2, 3, 4, 6, 7), true)) {

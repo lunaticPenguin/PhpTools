@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Plugins\Tools;
+namespace App\Tools;
 
 class DbConstraint extends Constraint
 {
@@ -8,6 +8,19 @@ class DbConstraint extends Constraint
      * @var array
      */
     protected static $hashData;
+
+    /**
+     * Factorized code for checking types between several methods
+     * @param $strMethodName
+     * @param $strFieldName
+     * @param array $hashOptions
+     * @return bool
+     */
+    protected function commonCheck($strMethodName, $strFieldName, array $hashOptions)
+    {
+        return isset(static::$hashData[$strFieldName])
+        && parent::$strMethodName(static::$hashData[$strFieldName], $hashOptions);
+    }
 
     /**
      * Binds external data to internal data
@@ -27,8 +40,10 @@ class DbConstraint extends Constraint
      */
     public static function isString($strFieldName, array $hashOptions = array())
     {
-        return isset(static::$hashData[$strFieldName])
-        && parent::isString(static::$hashData[$strFieldName], $hashOptions);
+        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
+            return true;
+        }
+        return self::commonCheck('isString', $strFieldName, $hashOptions);
     }
 
     /**
@@ -38,8 +53,10 @@ class DbConstraint extends Constraint
      */
     public static function isInteger($strFieldName, array $hashOptions = array())
     {
-        return isset(static::$hashData[$strFieldName])
-        && parent::isInteger(static::$hashData[$strFieldName], $hashOptions);
+        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
+            return true;
+        }
+        return self::commonCheck('isInteger', $strFieldName, $hashOptions);
     }
 
     /**
@@ -49,8 +66,10 @@ class DbConstraint extends Constraint
      */
     public static function isFloat($strFieldName, array $hashOptions = array())
     {
-        return isset(static::$hashData[$strFieldName])
-        && parent::isFloat(static::$hashData[$strFieldName], $hashOptions);
+        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
+            return true;
+        }
+        return self::commonCheck('isFloat', $strFieldName, $hashOptions);
     }
 
     /**
@@ -60,8 +79,10 @@ class DbConstraint extends Constraint
      */
     public static function isBoolean($strFieldName, array $hashOptions = array())
     {
-        return isset(static::$hashData[$strFieldName])
-        && parent::isBoolean(static::$hashData[$strFieldName], $hashOptions);
+        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
+            return true;
+        }
+        return self::commonCheck('isBoolean', $strFieldName, $hashOptions);
     }
 
     /**
@@ -73,22 +94,26 @@ class DbConstraint extends Constraint
      */
     public static function isEmail($strFieldName, array $hashOptions = array())
     {
-        return isset(static::$hashData[$strFieldName])
-        && parent::isEmail(static::$hashData[$strFieldName], $hashOptions);
+        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
+            return true;
+        }
+        return self::commonCheck('isEmail', $strFieldName, $hashOptions);
     }
 
     /**
      * Allows to check if an internal variable contains an array which has specific keys/values set
      * or if it is strictly identical to another array
      *
-     * @param $strFieldName
+     * @param string $strFieldName
      * @param array $hashOptions
      * @return bool
      */
     public static function isArray($strFieldName, array $hashOptions = array())
     {
-        return isset(static::$hashData[$strFieldName])
-        && parent::isArray(static::$hashData[$strFieldName], $hashOptions);
+        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
+            return true;
+        }
+        return self::commonCheck('isArray', $strFieldName, $hashOptions);
     }
 
     /**

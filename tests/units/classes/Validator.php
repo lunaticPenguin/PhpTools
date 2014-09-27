@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Plugins\Tools\Tests\Units;
+namespace App\Tools\Tests\Units;
 
 $config = include __DIR__ . '/../../../app/config/config.php';
 include __DIR__ . '/../../../app/config/loader.php';
 
 use \atoum;
-use App\Plugins\Tools\Validator as V;
+use App\Tools\Validator as V;
 
 class Validator extends atoum
 {

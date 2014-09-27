@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Plugins\Tools;
+namespace App\Tools;
 
 class Validator
 {
