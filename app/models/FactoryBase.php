@@ -337,6 +337,12 @@ abstract class FactoryBase
     {
         $strColumns = implode(',', $arrayColumns);
         $strJoin = '';
+
+        // all avalaible columns' names are prefixed by table alias to avoid ambigous clause
+        $hashAvailableColumns = array();
+        foreach (self::getModelInformation('columns') as $strColumn => $intType) {
+            $hashAvailableColumns[sprintf('%s.%s', self::getModelInformation('alias'), $strColumn)] = $intType;
+        }
         if (isset($hashOptions['join']) && is_array($hashOptions['join']) && !empty($hashOptions['join'])) {
             $arrayJoins = array();
             foreach ($hashOptions['join'] as $strJoinType => $arrayModelToJoin) {
@@ -355,6 +361,12 @@ abstract class FactoryBase
                                 $strModelToJoin::getModelInformation('alias')
                                     . '.' . $strModelToJoin::getModelInformation('primary_key')
                             );
+
+                            // collect all available columns
+                            $strAlias = $strModelToJoin::getModelInformation('alias');
+                            foreach (array_keys($strModelToJoin::getModelInformation('columns')) as $strColumn => $intType) {
+                                $hashAvailableColumns[sprintf('%s.%s', $strAlias, $strColumn)] = $intType;
+                            }
                         }
                     }
                 }
@@ -362,8 +374,8 @@ abstract class FactoryBase
             $strJoin = implode(' ', $arrayJoins);
         }
 
-        $strWhere = self::computeWhereAndHavingClause($hashOptions, 'where');
-        $strHaving = self::computeWhereAndHavingClause($hashOptions, 'having');
+        $hashWhereInfos = self::computeWhereAndHavingClause($hashOptions, 'where', $hashAvailableColumns);
+        $hashHavingInfos = self::computeWhereAndHavingClause($hashOptions, 'having', $hashAvailableColumns);
 
         $strOrder = '';
         if (isset($hashOptions['order']) && is_array($hashOptions['order'])) {
@@ -406,8 +418,8 @@ abstract class FactoryBase
             static::$hashInfos['table'],
             static::$hashInfos['alias'],
             $strJoin,
-            $strWhere,
-            $strHaving,
+            $hashWhereInfos['sql'],
+            $hashHavingInfos['sql'],
             $strOrder,
             $strGroup,
             $strLimit
@@ -416,6 +428,13 @@ abstract class FactoryBase
 
         
         $objStatement = static::$objDb->prepare($strSql);
+        foreach ($hashWhereInfos['bind'] as $strParameter => $hashBindInfos) {
+            $objStatement->bindValue($strParameter, $hashBindInfos['value'], $hashBindInfos['type']);
+        }
+        foreach ($hashHavingInfos['bind'] as $strParameter => $hashBindInfos) {
+            $objStatement->bindValue($strParameter, $hashBindInfos['value'], $hashBindInfos['type']);
+        }
+
         $objStatement->execute();
 
         return array(
@@ -428,45 +447,68 @@ abstract class FactoryBase
      * Computes where and having parts from the generic getList() method
      * @param array $hashOptions
      * @param string $strType
-     * @return string
+     * @param array $hashAvailableColumns
+     * @return array
      */
-    private static function computeWhereAndHavingClause(array $hashOptions, $strType)
+    private static function computeWhereAndHavingClause(array $hashOptions, $strType, array $hashAvailableColumns)
     {
         if (!in_array($strType, array('where', 'having'))) {
             return '';
         }
         $strPart = '';
+        $hashValuesToBind = array();
         if (isset($hashOptions[$strType]) && is_array($hashOptions[$strType]) && !empty($hashOptions[$strType])) {
             $arrayWheres = array();
             foreach ($hashOptions[$strType] as $strColumn => $hashWhereOptions) {
-                if (isset($hashWhereOptions['value'])) {
-                    $strPartType = '';
-                    if (!empty($arrayWheres)) {
-                        $strPartType = isset($hashWhereOptions['type'])
-                        && in_array(strtoupper($hashWhereOptions['type']), array('AND', 'OR'))
-                            ? strtoupper($hashWhereOptions['type']) : 'AND';
-                    }
+                if (isset($hashAvailableColumns[$strColumn])) { // if the requested column belongs to available columns
+                    if (isset($hashWhereOptions['value'])) {
+                        $strPartType = '';
+                        if (!empty($arrayWheres)) { // if not empty then we need to force the use of a logical operator
+                            $strPartType = isset($hashWhereOptions['type'])
+                            && in_array(strtoupper($hashWhereOptions['type']), array('AND', 'OR'))
+                                ? strtoupper($hashWhereOptions['type']) : 'AND';
+                        }
 
-                    $strPartClause = isset($hashWhereOptions['clause'])
-                    && in_array(strtoupper($hashWhereOptions['clause']), array('=', '!=', '<>', '<', '<=', '>', '=>', 'IN'))
-                        ? strtoupper($hashWhereOptions['clause']) : '=';
+                        $strPartClause = isset($hashWhereOptions['clause'])
+                        && in_array(strtoupper($hashWhereOptions['clause']), array('=', '!=', '<>', '<', '<=', '>', '=>', 'IN'))
+                            ? strtoupper($hashWhereOptions['clause']) : '=';
 
-                    if (is_array($hashWhereOptions['value'])) {
-                        $strPartClause = 'IN';
-                        $strPartValue = implode(',', $hashWhereOptions['value']);
-                    } else {
-                        $strPartValue = $hashWhereOptions['value'];
-                    }
+                        if (is_array($hashWhereOptions['value'])) {
+                            $strPartClause = 'IN';
+                            $strPartField = ':' . str_replace('.', '_', $strColumn);
+                            $arrayTmp = array();
 
-                    if ($strPartClause === 'IN') {
-                        $arrayWheres[] = sprintf('%s %s IN (%s)', $strPartType, $strColumn, $strPartValue);
-                    } else {
-                        $arrayWheres[] = sprintf('%s %s %s %s', $strPartType, $strColumn, $strPartClause, (string) $strPartValue);
+                            // storage of the multiple field (to bind later)
+                            foreach ($hashWhereOptions['value'] as $intKey => $mixedValue) {
+                                $strPartField = $strPartField . '_' . $intKey;
+                                $arrayTmp[] = $strPartField;
+                                $hashValuesToBind[$strPartField] = array(
+                                    'type'  => $hashAvailableColumns[$strColumn],
+                                    'value' => $mixedValue
+                                );
+                            }
+                            $strPartValue = implode(',', $arrayTmp);
+                        } else {
+                            $strPartValue = ':' . str_replace('.', '_', $strColumn);
+                            $hashValuesToBind[$strPartValue] = array(
+                                'type'  => $hashAvailableColumns[$strColumn],
+                                'value' => $hashWhereOptions['value']
+                            );
+                        }
+
+                        if ($strPartClause === 'IN') {
+                            $arrayWheres[] = sprintf('%s %s IN (%s)', $strPartType, $strColumn, $strPartValue);
+                        } else {
+                            $arrayWheres[] = sprintf('%s %s %s %s', $strPartType, $strColumn, $strPartClause, $strPartValue);
+                        }
                     }
                 }
             }
             $strPart = sprintf(' %s %s', strtoupper($strType), implode(' ', $arrayWheres));
         }
-        return $strPart;
+        return array(
+            'sql'   => $strPart,
+            'bind'  => $hashValuesToBind
+        );
     }
 }
