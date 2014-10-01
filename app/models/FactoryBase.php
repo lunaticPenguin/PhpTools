@@ -333,7 +333,7 @@ abstract class FactoryBase
      * @param array $hashOptions where, in, limit, order by
      * @return array
      */
-    public static function getList(array $arrayColumns, array $hashOptions = array())
+    public static function getGenericList(array $arrayColumns, array $hashOptions = array())
     {
         $strColumns = implode(',', $arrayColumns);
         $strJoin = '';

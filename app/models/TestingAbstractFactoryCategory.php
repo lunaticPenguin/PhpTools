@@ -1,7 +1,7 @@
 <?php
 namespace App\Models;
 
-use App\Tools\ModelConstraint;
+use App\Tools\DataConstraint;
 use App\Tools\Validator;
 use Phalcon\DI;
 
@@ -30,9 +30,9 @@ class TestingAbstractFactoryCategory extends FactoryBase
     protected static function validateData(array &$hashData, $boolIsUpdating)
     {
         Validator::reset();
-        ModelConstraint::bindData($hashData);
-        Validator::validate(ModelConstraint::isInteger('taf_id', array('required' => $boolIsUpdating, 'min' => 1)), 'Taf id must be an int > 0');
-        Validator::validate(ModelConstraint::isString('taf_name', array('required' => !$boolIsUpdating, 'max' => 50)), 'Taf name must be a string 50 char max');
+        DataConstraint::bindData($hashData);
+        Validator::validate(DataConstraint::isInteger('taf_id', array('required' => $boolIsUpdating, 'min' => 1)), 'Taf id must be an int > 0');
+        Validator::validate(DataConstraint::isString('taf_name', array('required' => !$boolIsUpdating, 'max' => 50)), 'Taf name must be a string 50 char max');
 
         return Validator::isValid();
     }

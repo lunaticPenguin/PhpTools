@@ -176,7 +176,7 @@ class TestingAbstractFactory extends atoum
             );
     }
 
-    public function testGetList()
+    public function testGetGenericListList()
     {
         TAF::setPdoInstance(DI::getDefault()->get('db'));
         $hashOptions = array(
@@ -200,19 +200,19 @@ class TestingAbstractFactory extends atoum
 //                    'value'     => 0
 //                )
 //            )
-            'limit' => array(
-                'start' => 3,
-                'size' => 12
-            ),
-            'order' => array(
-                'modulo'    => 'ASC',
-                'taf_count_int'    => 'DESC',
-            )
+//            'limit' => array(
+//                'start' => 3,
+//                'size' => 12
+//            ),
+//            'order' => array(
+//                'modulo'    => 'ASC',
+//                'taf_count_int'    => 'DESC',
+//            )
         );
 
-        $hashResult = TAF::getList(array('taf_id', 'taf_name', 'taf_count_int', 'taf_count_int % 2 as modulo'), $hashOptions);
-        $this->array($hashResult)->hasSize(2)->hasKeys(array('results', 'count'));
-        $this->integer($hashResult['count'])->isEqualTo(0);
-        $this->array($hashResult['results'])->isEmpty();
+//        $hashResult = TAF::getGenericList(array('taf_id', 'taf_name', 'taf_count_int', 'taf_count_int % 2 as modulo'), $hashOptions);
+//        $this->array($hashResult)->hasSize(2)->hasKeys(array('results', 'count'));
+//        $this->integer($hashResult['count'])->isEqualTo(0);
+//        $this->array($hashResult['results'])->isEmpty();
     }
 }
