@@ -338,8 +338,18 @@ abstract class FactoryBase
         $strColumns = implode(',', $arrayColumns);
         $strJoin = '';
 
-        // all avalaible columns' names are prefixed by table alias to avoid ambigous clause
+        // all available columns' names are prefixed by table alias to avoid ambigous clause
         $hashAvailableColumns = array();
+        $arrayTmpMatches = array();
+        foreach ($arrayColumns as $strColumn) {
+            // storing all computed columns into available columns list
+            if (preg_match('/^.+[ ]+(AS|as|As|aS)[ ]+(.+)$/', $strColumn, $arrayTmpMatches)) {
+                if (count($arrayTmpMatches) === 3) {
+                    // type is forced to PDO::PARAM_STR but later, the most suitable type is automatically chosen
+                    $hashAvailableColumns[$arrayTmpMatches[2]] = \PDO::PARAM_STR;
+                }
+            }
+        }
         foreach (self::getModelInformation('columns') as $strColumn => $intType) {
             $hashAvailableColumns[sprintf('%s.%s', self::getModelInformation('alias'), $strColumn)] = $intType;
         }
@@ -424,13 +434,14 @@ abstract class FactoryBase
             $strGroup,
             $strLimit
         );
-        //var_dump($strSql);
-
         
         $objStatement = static::$objDb->prepare($strSql);
         foreach ($hashWhereInfos['bind'] as $strParameter => $hashBindInfos) {
             $objStatement->bindValue($strParameter, $hashBindInfos['value'], $hashBindInfos['type']);
         }
+
+        // /!\ bind type value can be different of \PDO::PARAM_STR for having clause values
+        // (see self::findSuitableBindType calls for more details)
         foreach ($hashHavingInfos['bind'] as $strParameter => $hashBindInfos) {
             $objStatement->bindValue($strParameter, $hashBindInfos['value'], $hashBindInfos['type']);
         }
@@ -461,7 +472,7 @@ abstract class FactoryBase
             $arrayWheres = array();
             foreach ($hashOptions[$strType] as $strColumn => $hashWhereOptions) {
                 if (isset($hashAvailableColumns[$strColumn])) { // if the requested column belongs to available columns
-                    if (isset($hashWhereOptions['value'])) {
+                    if (array_key_exists('value', $hashWhereOptions)) {
                         $strPartType = '';
                         if (!empty($arrayWheres)) { // if not empty then we need to force the use of a logical operator
                             $strPartType = isset($hashWhereOptions['type'])
@@ -486,6 +497,11 @@ abstract class FactoryBase
                                     'type'  => $hashAvailableColumns[$strColumn],
                                     'value' => $mixedValue
                                 );
+
+                                // special case for having clause (<=> computed columns OTF)
+                                if ($strType === 'having') {
+                                    $hashValuesToBind[$strPartField]['type'] = self::findSuitableBindType($mixedValue);
+                                }
                             }
                             $strPartValue = implode(',', $arrayTmp);
                         } else {
@@ -494,6 +510,11 @@ abstract class FactoryBase
                                 'type'  => $hashAvailableColumns[$strColumn],
                                 'value' => $hashWhereOptions['value']
                             );
+
+                            // special case for having clause (<=> computed columns OTF)
+                            if ($strType === 'having') {
+                                $hashValuesToBind[$strPartValue]['type'] = self::findSuitableBindType($hashWhereOptions['value']);
+                            }
                         }
 
                         if ($strPartClause === 'IN') {
@@ -510,5 +531,27 @@ abstract class FactoryBase
             'sql'   => $strPart,
             'bind'  => $hashValuesToBind
         );
+    }
+
+    /**
+     * Allows builder to find automatically the suitable type for a value (having clause only)
+     * @param $mixedValue
+     * @return integer
+     */
+    protected static function findSuitableBindType($mixedValue)
+    {
+        switch (true) {
+            case is_integer($mixedValue):
+                return \PDO::PARAM_INT;
+                break;
+            case is_null($mixedValue):
+                return \PDO::PARAM_NULL;
+            break;
+            default:
+            case is_string($mixedValue):
+            case is_float($mixedValue):
+                return \PDO::PARAM_STR;
+                break;
+        }
     }
 }

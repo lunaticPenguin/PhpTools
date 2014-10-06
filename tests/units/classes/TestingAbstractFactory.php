@@ -194,12 +194,12 @@ class TestingAbstractFactory extends atoum
 //                )
 //            ),
             // the same using
-//            'having'    => array(
-//                'modulo'  => array(
-//                    'clause'    => '=',
-//                    'value'     => 0
-//                )
-//            )
+            'having'    => array(
+                'modulo'  => array(
+                    'clause'    => '=',
+                    'value'     => null
+                )
+            )
 //            'limit' => array(
 //                'start' => 3,
 //                'size' => 12
@@ -210,7 +210,7 @@ class TestingAbstractFactory extends atoum
 //            )
         );
 
-//        $hashResult = TAF::getGenericList(array('taf_id', 'taf_name', 'taf_count_int', 'taf_count_int % 2 as modulo'), $hashOptions);
+        $hashResult = TAF::getGenericList(array('taf_id', 'taf_name', 'taf_count_int', 'taf_count_int % 2 as modulo'), $hashOptions);
 //        $this->array($hashResult)->hasSize(2)->hasKeys(array('results', 'count'));
 //        $this->integer($hashResult['count'])->isEqualTo(0);
 //        $this->array($hashResult['results'])->isEmpty();
