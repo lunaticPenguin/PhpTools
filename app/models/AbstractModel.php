@@ -3,7 +3,7 @@ namespace App\Models;
 
 use App\Tools\Validator;
 
-abstract class FactoryBase
+abstract class AbstractModel
 {
     /**
      * Used during a row's update when an extra parameter is passed, listing which fields are authorized for update or not.
@@ -20,7 +20,7 @@ abstract class FactoryBase
     /**
      * Mandatory static attributes for children classes.
      * Contains all related table data
-     * for this class (FactoryBase) to have abstract code functional.
+     * for this class (AbstractModel) to have abstract code functional.
      * @var array
      */
     protected static $hashInfos = array(
