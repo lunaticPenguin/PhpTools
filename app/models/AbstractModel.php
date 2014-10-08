@@ -6,18 +6,6 @@ use App\Tools\Validator;
 abstract class AbstractModel
 {
     /**
-     * Used during a row's update when an extra parameter is passed, listing which fields are authorized for update or not.
-     * UPDATE_LIST_WHITE means that the columns passed are only fields which can be updated among all available columns.
-     */
-    const UPDATE_LIST_WHITE = 0;
-
-    /**
-     * Used during a row's update when an extra parameter is passed, listing which columns are authorized for update or not.
-     * UPDATE_LIST_BLACK means that the columns passed are only columns which cannot be updated among all available columns.
-     */
-    const UPDATE_LIST_BLACK = 1;
-
-    /**
      * Mandatory static attributes for children classes.
      * Contains all related table data
      * for this class (AbstractModel) to have abstract code functional.
@@ -120,10 +108,9 @@ abstract class AbstractModel
      * Allows to update a row whose an identifier is provided
      * @param array $hashData
      * @param array $arrayColumnList columns' list (optional)
-     * @param integer $intFlagList column's list type (included/excluded) (optional)
      * @return integer number of affected rows
      */
-    public static function updateById(array $hashData, array $arrayColumnList = array(), $intFlagList = self::UPDATE_LIST_BLACK)
+    public static function updateById(array $hashData, array $arrayColumnList = array())
     {
         Validator::reset();
         if (!static::validateData($hashData, true)) {
@@ -133,22 +120,16 @@ abstract class AbstractModel
         $hashSqlParts = array();
         $hashValues = array();
         foreach ($hashData as $strColumn => $mixedValue) {
-            if (static::$hashInfos['primary_key'] !== $strColumn && isset(static::$hashInfos['columns'][$strColumn])) {
+            if (isset(static::$hashInfos['columns'][$strColumn])) {
                 if (!empty($arrayColumnList)) {
-                    if ($intFlagList === self::UPDATE_LIST_BLACK) {
-                        if (!in_array($strColumn, $arrayColumnList)) {
-                            $hashSqlParts[$strColumn] = $strColumn . '=:' . $strColumn;
-                        }
-                    } else {
-                        if (in_array($strColumn, $arrayColumnList)) {
-                            $hashSqlParts[$strColumn] = $strColumn . '=:' . $strColumn;
-                        }
+                    if (in_array($strColumn, $arrayColumnList)) {
+                        $hashSqlParts[$strColumn] = $strColumn . '=:' . $strColumn;
                     }
                 } else {
                     $hashSqlParts[$strColumn] = $strColumn . '=:' . $strColumn;
                 }
+                $hashValues[$strColumn] = $mixedValue;
             }
-            $hashValues[$strColumn] = $mixedValue;
         }
         $strSql = sprintf(
             "UPDATE %s.%s SET %s WHERE %s=:%s_id",
@@ -553,5 +534,44 @@ abstract class AbstractModel
                 return \PDO::PARAM_STR;
                 break;
         }
+    }
+
+    /**
+     * Allows to begin an sql transaction
+     * @return boolean
+     */
+    final public static function beginTransaction()
+    {
+        return static::$objDb->beginTransaction();
+    }
+
+    /**
+     * Allows to close and commit an sql transaction
+     * @return boolean
+     */
+    final public static function commitTransaction()
+    {
+        return static::$objDb->commit();
+    }
+
+    /**
+     * Allows to rollback an sql transaction
+     * @return boolean
+     */
+    final public static function rollbackTransaction()
+    {
+        if (static::isInTransaction()) {
+            return static::$objDb->rollBack();
+        }
+        return false;
+    }
+
+    /**
+     * Indicates if there is a current transaction
+     * @return boolean
+     */
+    final public static function isInTransaction()
+    {
+        return static::$objDb->inTransaction();
     }
 }
