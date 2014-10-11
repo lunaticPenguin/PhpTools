@@ -5,7 +5,7 @@ use App\Tools\DataConstraint;
 use App\Tools\Validator;
 use Phalcon\DI;
 
-class TestingAbstractFactory extends FactoryBase
+class TestingAbstractFactory extends AbstractModel
 {
     protected static $hashInfos = array(
         'database'      => 'phptools',

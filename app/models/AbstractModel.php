@@ -1,26 +1,16 @@
 <?php
 namespace App\Models;
 
+use App\Exceptions\ModelException;
+use App\Tools\Constraint;
 use App\Tools\Validator;
 
-abstract class FactoryBase
+abstract class AbstractModel
 {
-    /**
-     * Used during a row's update when an extra parameter is passed, listing which fields are authorized for update or not.
-     * UPDATE_LIST_WHITE means that the columns passed are only fields which can be updated among all available columns.
-     */
-    const UPDATE_LIST_WHITE = 0;
-
-    /**
-     * Used during a row's update when an extra parameter is passed, listing which columns are authorized for update or not.
-     * UPDATE_LIST_BLACK means that the columns passed are only columns which cannot be updated among all available columns.
-     */
-    const UPDATE_LIST_BLACK = 1;
-
     /**
      * Mandatory static attributes for children classes.
      * Contains all related table data
-     * for this class (FactoryBase) to have abstract code functional.
+     * for this class (AbstractModel) to have abstract code functional.
      * @var array
      */
     protected static $hashInfos = array(
@@ -79,12 +69,13 @@ abstract class FactoryBase
      *
      * @param array $hashData
      * @return int
+     * @throws ModelException|\PDOException
      */
     public static function create(array $hashData)
     {
         Validator::reset();
         if (!static::validateData($hashData, false)) {
-            return 0;
+            throw new ModelException('CREATE - Invalid input data for %s', get_called_class());
         }
 
         $hashKeys = array();
@@ -120,35 +111,29 @@ abstract class FactoryBase
      * Allows to update a row whose an identifier is provided
      * @param array $hashData
      * @param array $arrayColumnList columns' list (optional)
-     * @param integer $intFlagList column's list type (included/excluded) (optional)
      * @return integer number of affected rows
+     * @throws ModelException|\PDOException
      */
-    public static function updateById(array $hashData, array $arrayColumnList = array(), $intFlagList = self::UPDATE_LIST_BLACK)
+    public static function updateById(array $hashData, array $arrayColumnList = array())
     {
         Validator::reset();
         if (!static::validateData($hashData, true)) {
-            return 0;
+            throw new ModelException('UPDATE - Invalid input data for %s', get_called_class());
         }
 
         $hashSqlParts = array();
         $hashValues = array();
         foreach ($hashData as $strColumn => $mixedValue) {
-            if (static::$hashInfos['primary_key'] !== $strColumn && isset(static::$hashInfos['columns'][$strColumn])) {
+            if (isset(static::$hashInfos['columns'][$strColumn])) {
                 if (!empty($arrayColumnList)) {
-                    if ($intFlagList === self::UPDATE_LIST_BLACK) {
-                        if (!in_array($strColumn, $arrayColumnList)) {
-                            $hashSqlParts[$strColumn] = $strColumn . '=:' . $strColumn;
-                        }
-                    } else {
-                        if (in_array($strColumn, $arrayColumnList)) {
-                            $hashSqlParts[$strColumn] = $strColumn . '=:' . $strColumn;
-                        }
+                    if (in_array($strColumn, $arrayColumnList)) {
+                        $hashSqlParts[$strColumn] = $strColumn . '=:' . $strColumn;
                     }
                 } else {
                     $hashSqlParts[$strColumn] = $strColumn . '=:' . $strColumn;
                 }
+                $hashValues[$strColumn] = $mixedValue;
             }
-            $hashValues[$strColumn] = $mixedValue;
         }
         $strSql = sprintf(
             "UPDATE %s.%s SET %s WHERE %s=:%s_id",
@@ -176,6 +161,7 @@ abstract class FactoryBase
      * Allow to delete several using an identifiers list
      * @param array $arrayInputIds
      * @return integer
+     * @throws \PDOException
      */
     public static function deleteByListId(array $arrayInputIds)
     {
@@ -206,6 +192,7 @@ abstract class FactoryBase
      * Delete a single row using it's identifier
      * @param $intId
      * @return integer
+     * @throws \PDOException
      */
     public static function deleteById($intId)
     {
@@ -234,10 +221,13 @@ abstract class FactoryBase
      * @param $intId
      * @param array $arrayColumns columns that must be fetched (empty <=> all)
      * @return array
+     * @throws ModelException|\PDOException
      */
     public static function getById($intId, array $arrayColumns = array())
     {
-        $intId = (int) $intId;
+        if (!Constraint::isInteger($intId, array('min' => 0))) {
+            throw new ModelException(sprintf('%s::getById() - Invalid identifier provided (%s:%s)', get_called_class(), (string) $intId, gettype($intId)));
+        }
 
         $arrayFetchedColumns = self::computeFetchedColumns($arrayColumns);
 
@@ -264,6 +254,7 @@ abstract class FactoryBase
      * @param array $arrayColumns columns that must be fetched (empty <=> all)
      * @param array $hashOptions query's options
      * @return array
+     * @throws \PDOException
      */
     public static function getByListId(array $arrayInputIds, array $arrayColumns = array(), array $hashOptions = array())
     {
@@ -332,6 +323,7 @@ abstract class FactoryBase
      * @param array $arrayColumns
      * @param array $hashOptions where, in, limit, order by
      * @return array
+     * @throws \PDOException
      */
     public static function getGenericList(array $arrayColumns, array $hashOptions = array())
     {
@@ -356,7 +348,7 @@ abstract class FactoryBase
         if (isset($hashOptions['join']) && is_array($hashOptions['join']) && !empty($hashOptions['join'])) {
             $arrayJoins = array();
             foreach ($hashOptions['join'] as $strJoinType => $arrayModelToJoin) {
-                if (in_array(strtoupper($strJoinType), array('left', 'right', 'inner', 'outer'))
+                if (in_array(strtolower($strJoinType), array('left', 'right', 'inner', 'outer'))
                     && is_array($arrayModelToJoin)) {
                     foreach ($arrayModelToJoin as $strModelToJoin) {
                         if (class_exists($strModelToJoin)) {
@@ -481,7 +473,7 @@ abstract class FactoryBase
                         }
 
                         $strPartClause = isset($hashWhereOptions['clause'])
-                        && in_array(strtoupper($hashWhereOptions['clause']), array('=', '!=', '<>', '<', '<=', '>', '=>', 'IN'))
+                        && in_array(strtoupper($hashWhereOptions['clause']), array('=', '!=', '<>', '<', '<=', '>', '=>', 'IN', 'LIKE'))
                             ? strtoupper($hashWhereOptions['clause']) : '=';
 
                         if (is_array($hashWhereOptions['value'])) {
@@ -553,5 +545,44 @@ abstract class FactoryBase
                 return \PDO::PARAM_STR;
                 break;
         }
+    }
+
+    /**
+     * Allows to begin an sql transaction
+     * @return boolean
+     */
+    final public static function beginTransaction()
+    {
+        return static::$objDb->beginTransaction();
+    }
+
+    /**
+     * Allows to close and commit an sql transaction
+     * @return boolean
+     */
+    final public static function commitTransaction()
+    {
+        return static::$objDb->commit();
+    }
+
+    /**
+     * Allows to rollback an sql transaction
+     * @return boolean
+     */
+    final public static function rollbackTransaction()
+    {
+        if (static::isInTransaction()) {
+            return static::$objDb->rollBack();
+        }
+        return false;
+    }
+
+    /**
+     * Indicates if there is a current transaction
+     * @return boolean
+     */
+    final public static function isInTransaction()
+    {
+        return static::$objDb->inTransaction();
     }
 }
