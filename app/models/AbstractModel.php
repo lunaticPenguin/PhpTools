@@ -5,6 +5,11 @@ use App\Exceptions\ModelException;
 use App\Tools\Constraint;
 use App\Tools\Validator;
 
+/**
+ * Class AbstractModel.
+ * Factorize all basic methods for children models and provide them CRUD operations.
+ * @package App\Models
+ */
 abstract class AbstractModel
 {
     /**
@@ -75,7 +80,7 @@ abstract class AbstractModel
     {
         Validator::reset();
         if (!static::validateData($hashData, false)) {
-            throw new ModelException('CREATE - Invalid input data for %s', get_called_class());
+            throw new ModelException(sprintf('CREATE - Invalid input data for %s', get_called_class()));
         }
 
         $hashKeys = array();
@@ -118,7 +123,7 @@ abstract class AbstractModel
     {
         Validator::reset();
         if (!static::validateData($hashData, true)) {
-            throw new ModelException('UPDATE - Invalid input data for %s', get_called_class());
+            throw new ModelException(sprintf('UPDATE - Invalid input data for %s', get_called_class()));
         }
 
         $hashSqlParts = array();
