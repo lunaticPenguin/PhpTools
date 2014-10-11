@@ -1,6 +1,8 @@
 <?php
 namespace App\Models;
 
+use App\Exceptions\ModelException;
+use App\Tools\Constraint;
 use App\Tools\Validator;
 
 abstract class AbstractModel
@@ -67,12 +69,13 @@ abstract class AbstractModel
      *
      * @param array $hashData
      * @return int
+     * @throws ModelException|\PDOException
      */
     public static function create(array $hashData)
     {
         Validator::reset();
         if (!static::validateData($hashData, false)) {
-            return 0;
+            throw new ModelException('CREATE - Invalid input data for %s', get_called_class());
         }
 
         $hashKeys = array();
@@ -109,12 +112,13 @@ abstract class AbstractModel
      * @param array $hashData
      * @param array $arrayColumnList columns' list (optional)
      * @return integer number of affected rows
+     * @throws ModelException|\PDOException
      */
     public static function updateById(array $hashData, array $arrayColumnList = array())
     {
         Validator::reset();
         if (!static::validateData($hashData, true)) {
-            return 0;
+            throw new ModelException('UPDATE - Invalid input data for %s', get_called_class());
         }
 
         $hashSqlParts = array();
@@ -157,6 +161,7 @@ abstract class AbstractModel
      * Allow to delete several using an identifiers list
      * @param array $arrayInputIds
      * @return integer
+     * @throws \PDOException
      */
     public static function deleteByListId(array $arrayInputIds)
     {
@@ -187,6 +192,7 @@ abstract class AbstractModel
      * Delete a single row using it's identifier
      * @param $intId
      * @return integer
+     * @throws \PDOException
      */
     public static function deleteById($intId)
     {
@@ -215,10 +221,13 @@ abstract class AbstractModel
      * @param $intId
      * @param array $arrayColumns columns that must be fetched (empty <=> all)
      * @return array
+     * @throws ModelException|\PDOException
      */
     public static function getById($intId, array $arrayColumns = array())
     {
-        $intId = (int) $intId;
+        if (!Constraint::isInteger($intId, array('min' => 0))) {
+            throw new ModelException(sprintf('%s::getById() - Invalid identifier provided (%s:%s)', get_called_class(), (string) $intId, gettype($intId)));
+        }
 
         $arrayFetchedColumns = self::computeFetchedColumns($arrayColumns);
 
@@ -245,6 +254,7 @@ abstract class AbstractModel
      * @param array $arrayColumns columns that must be fetched (empty <=> all)
      * @param array $hashOptions query's options
      * @return array
+     * @throws \PDOException
      */
     public static function getByListId(array $arrayInputIds, array $arrayColumns = array(), array $hashOptions = array())
     {
@@ -313,6 +323,7 @@ abstract class AbstractModel
      * @param array $arrayColumns
      * @param array $hashOptions where, in, limit, order by
      * @return array
+     * @throws \PDOException
      */
     public static function getGenericList(array $arrayColumns, array $hashOptions = array())
     {
@@ -337,7 +348,7 @@ abstract class AbstractModel
         if (isset($hashOptions['join']) && is_array($hashOptions['join']) && !empty($hashOptions['join'])) {
             $arrayJoins = array();
             foreach ($hashOptions['join'] as $strJoinType => $arrayModelToJoin) {
-                if (in_array(strtoupper($strJoinType), array('left', 'right', 'inner', 'outer'))
+                if (in_array(strtolower($strJoinType), array('left', 'right', 'inner', 'outer'))
                     && is_array($arrayModelToJoin)) {
                     foreach ($arrayModelToJoin as $strModelToJoin) {
                         if (class_exists($strModelToJoin)) {
@@ -462,7 +473,7 @@ abstract class AbstractModel
                         }
 
                         $strPartClause = isset($hashWhereOptions['clause'])
-                        && in_array(strtoupper($hashWhereOptions['clause']), array('=', '!=', '<>', '<', '<=', '>', '=>', 'IN'))
+                        && in_array(strtoupper($hashWhereOptions['clause']), array('=', '!=', '<>', '<', '<=', '>', '=>', 'IN', 'LIKE'))
                             ? strtoupper($hashWhereOptions['clause']) : '=';
 
                         if (is_array($hashWhereOptions['value'])) {
