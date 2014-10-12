@@ -35,12 +35,19 @@ abstract class AbstractModel
 
     /**
      * Returns information about the current model
-     * @param $strInformation
+     * @param string $strInformation database|model|alias|primary_key|columns|available_columns
      * @return mixed
      */
     public static function getModelInformation($strInformation = 'table')
     {
-        if (!in_array($strInformation, array_keys(static::$hashInfos))) {
+        if ($strInformation === 'available_columns') {
+            $hashColumns = array();
+            foreach (static::$hashInfos['columns'] as $strColumn => $hashColumnsInfos) {
+                $hashColumns[$strColumn] = $hashColumnsInfos;
+                $hashColumns[static::$hashInfos['alias'] . '.' . $strColumn] = $hashColumnsInfos;
+            }
+            return $hashColumns;
+        } elseif (!in_array($strInformation, array_keys(static::$hashInfos))) {
             $strInformation = 'table';
         }
         return static::$hashInfos[$strInformation];
@@ -336,7 +343,7 @@ abstract class AbstractModel
         $strJoin = '';
 
         // all available columns' names are prefixed by table alias to avoid ambigous clause
-        $hashAvailableColumns = array();
+        $hashAvailableColumns = static::getModelInformation('available_columns');
         $arrayTmpMatches = array();
         foreach ($arrayColumns as $strColumn) {
             // storing all computed columns into available columns list
@@ -346,9 +353,6 @@ abstract class AbstractModel
                     $hashAvailableColumns[$arrayTmpMatches[2]] = \PDO::PARAM_STR;
                 }
             }
-        }
-        foreach (self::getModelInformation('columns') as $strColumn => $intType) {
-            $hashAvailableColumns[sprintf('%s.%s', self::getModelInformation('alias'), $strColumn)] = $intType;
         }
         if (isset($hashOptions['join']) && is_array($hashOptions['join']) && !empty($hashOptions['join'])) {
             $arrayJoins = array();
@@ -431,7 +435,7 @@ abstract class AbstractModel
             $strGroup,
             $strLimit
         );
-        
+
         $objStatement = static::$objDb->prepare($strSql);
         foreach ($hashWhereInfos['bind'] as $strParameter => $hashBindInfos) {
             $objStatement->bindValue($strParameter, $hashBindInfos['value'], $hashBindInfos['type']);
@@ -491,7 +495,7 @@ abstract class AbstractModel
                                 $strPartField = $strPartField . '_' . $intKey;
                                 $arrayTmp[] = $strPartField;
                                 $hashValuesToBind[$strPartField] = array(
-                                    'type'  => $hashAvailableColumns[$strColumn],
+                                    'type'  => $hashAvailableColumns[$strColumn]['type'],
                                     'value' => $mixedValue
                                 );
 
@@ -504,7 +508,7 @@ abstract class AbstractModel
                         } else {
                             $strPartValue = ':' . str_replace('.', '_', $strColumn);
                             $hashValuesToBind[$strPartValue] = array(
-                                'type'  => $hashAvailableColumns[$strColumn],
+                                'type'  => $hashAvailableColumns[$strColumn]['type'],
                                 'value' => $hashWhereOptions['value']
                             );
 
@@ -522,7 +526,9 @@ abstract class AbstractModel
                     }
                 }
             }
-            $strPart = sprintf(' %s %s', strtoupper($strType), implode(' ', $arrayWheres));
+            if (!empty($arrayWheres)) {
+                $strPart = sprintf(' %s %s', strtoupper($strType), implode(' ', $arrayWheres));
+            }
         }
         return array(
             'sql'   => $strPart,
