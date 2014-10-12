@@ -1,0 +1,6 @@
+{
+    "require": {
+        "robmorgan/phinx": "*",
+        "atoum/atoum" : "dev-master"
+    }
+}
