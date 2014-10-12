@@ -10,8 +10,7 @@ namespace App\Tools;
 class ModelConstraint
 {
     /**
-     * Allows to check a row with a specified value already exists in a column A
-     * inside a table B in a database C
+     * Allows to check if a row already exists using a single column
      *
      * @param string $strClassModel
      * @param string $strColumn
@@ -35,7 +34,7 @@ class ModelConstraint
     }
 
     /**
-     * Allows to check a row with a specified already exists in a column A inside a table B in a database C
+     * Allows to check if a row already exists using two columns
      *
      * @param string $strClassModel
      * @param string $strColumnA
