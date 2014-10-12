@@ -29,7 +29,9 @@ class TestingAbstractFactory extends atoum
     public function testCreate()
     {
         TAF::setPDOInstance(DI::getDefault()->get('db'));
-        $this->integer(TAF::create(array()))->isEqualTo(0);
+        $this->exception(function() {
+            TAF::create(array());
+        })->isInstanceOf('App\Exceptions\ModelException');
 
         $intId = $this->insertNewRow();
         $this->integer($intId)->isGreaterThan(0);
@@ -78,7 +80,10 @@ class TestingAbstractFactory extends atoum
             'taf_count_int'     => 7,
             'taf_count_float'   => 3.14
         );
-        $this->integer(TAF::updateById($hashDataUpdated))->isEqualTo(0);
+
+        $this->exception(function() use ($hashDataUpdated) {
+            TAF::updateById($hashDataUpdated);
+        })->isInstanceOf('App\Exceptions\ModelException');
 
         $hashDataUpdated = array(
             'taf_id'            => 1, // imaginary id (but valid value)
@@ -86,7 +91,9 @@ class TestingAbstractFactory extends atoum
             'taf_count_int'     => 7,
             'taf_count_float'   => -3.14 // value < 0
         );
-        $this->integer(TAF::updateById($hashDataUpdated))->isEqualTo(0);
+        $this->exception(function() use ($hashDataUpdated) {
+            TAF::updateById($hashDataUpdated);
+        })->isInstanceOf('App\Exceptions\ModelException');
 
         $intId = $this->insertNewRow();
         $this->integer($intId)->isGreaterThan(0);
