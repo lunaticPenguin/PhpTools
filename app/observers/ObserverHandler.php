@@ -12,7 +12,7 @@ class ObserverHandler
      * Contains all observers mapped using their names
      * @var array
      */
-    protected static $hashPluginsTable = array();
+    protected static $hashObserversTable = array();
 
     /**
      * Contains all hooks of registered observers
@@ -31,10 +31,10 @@ class ObserverHandler
     {
         foreach ($arrayRegisteredObservers as $strObserverName) {
             if (class_exists($strObserverName)) {
-                $objPlugin = new $strObserverName();
-                if ($objPlugin instanceof AbstractObserver) {
-                    self::$hashPluginsTable[$objPlugin->getName()] = $objPlugin;
-                    $objPlugin->load();
+                $objObserver = new $strObserverName();
+                if ($objObserver instanceof AbstractObserver) {
+                    self::$hashObserversTable[$objObserver->getName()] = $objObserver;
+                    $objObserver->load();
                 }
             }
         }
@@ -147,17 +147,17 @@ class ObserverHandler
     protected static function commonApplyHook($strType, $strHookName, $mixedReturnedData, array $hashParams)
     {
         if (isset(self::$hashHooksTable[$strType][$strHookName])) {
-            foreach (self::$hashHooksTable[$strType][$strHookName] as $arrayPlugins) {
-                foreach ($arrayPlugins as $hashPluginInfos) {
+            foreach (self::$hashHooksTable[$strType][$strHookName] as $arrayObservers) {
+                foreach ($arrayObservers as $hashObserverInfos) {
 
                     if ($strType === 'simple') {
                         call_user_func(
-                            array(self::$hashPluginsTable[$hashPluginInfos['observer']], $hashPluginInfos['method']),
+                            array(self::$hashObserversTable[$hashObserverInfos['observer']], $hashObserverInfos['method']),
                             $hashParams
                         );
                     } else {
                         $mixedReturnedData = call_user_func(
-                            array(self::$hashPluginsTable[$hashPluginInfos['observer']], $hashPluginInfos['method']),
+                            array(self::$hashObserversTable[$hashObserverInfos['observer']], $hashObserverInfos['method']),
                             $mixedReturnedData,
                             $hashParams
                         );
@@ -178,14 +178,14 @@ class ObserverHandler
         foreach (self::$hashHooksTable as $strType => $hashHooks) {
             $hashDebug[$strType] = array();
             foreach ($hashHooks as $strHook => $hashPriorities) {
-                foreach ($hashPriorities as $intPriority => $arrayPluginInfos) {
+                foreach ($hashPriorities as $intPriority => $hashObserverInfos) {
                     if (!isset($hashDebug[$strType][$strHook])) {
                         $hashDebug[$strType][$strHook] = array();
                     }
                     $hashDebug[$strType][$strHook][] = sprintf(
                         '%s::%s - %d',
-                        strtoupper($arrayPluginInfos[0]['observer']),
-                        $arrayPluginInfos[0]['method'],
+                        strtoupper($hashObserverInfos[0]['observer']),
+                        $hashObserverInfos[0]['method'],
                         $intPriority
                     );
                 }
