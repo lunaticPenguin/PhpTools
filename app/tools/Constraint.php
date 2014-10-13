@@ -102,7 +102,7 @@ class Constraint
      * @param $boolInput
      * @return mixed
      */
-    public static function isBoolean($boolInput, array $hashOptions = array())
+    public static function isBoolean($boolInput)
     {
         return is_bool($boolInput);
     }
@@ -113,7 +113,7 @@ class Constraint
      * @param $strInput
      * @return bool
      */
-    public static function isEmail($strInput, array $hashOptions = array())
+    public static function isEmail($strInput)
     {
         return is_string($strInput) && filter_var($strInput, FILTER_VALIDATE_EMAIL);
     }
@@ -158,5 +158,15 @@ class Constraint
             }
         }
         return true;
+    }
+
+    /**
+     * Allows to check if a value is null
+     * @param $mixedValue
+     * @return bool
+     */
+    public static function isNull($mixedValue)
+    {
+        return is_null($mixedValue);
     }
 }

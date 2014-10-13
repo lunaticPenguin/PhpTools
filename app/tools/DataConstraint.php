@@ -17,6 +17,9 @@ class DataConstraint
      */
     protected function commonCheck($strMethodName, $strFieldName, array $hashOptions)
     {
+        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
+            return true;
+        }
         return isset(static::$hashData[$strFieldName])
         && Constraint::$strMethodName(static::$hashData[$strFieldName], $hashOptions);
     }
@@ -39,9 +42,6 @@ class DataConstraint
      */
     public static function isString($strFieldName, array $hashOptions = array())
     {
-        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
-            return true;
-        }
         return self::commonCheck('isString', $strFieldName, $hashOptions);
     }
 
@@ -52,9 +52,6 @@ class DataConstraint
      */
     public static function isInteger($strFieldName, array $hashOptions = array())
     {
-        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
-            return true;
-        }
         return self::commonCheck('isInteger', $strFieldName, $hashOptions);
     }
 
@@ -65,9 +62,6 @@ class DataConstraint
      */
     public static function isFloat($strFieldName, array $hashOptions = array())
     {
-        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
-            return true;
-        }
         return self::commonCheck('isFloat', $strFieldName, $hashOptions);
     }
 
@@ -78,9 +72,6 @@ class DataConstraint
      */
     public static function isBoolean($strFieldName, array $hashOptions = array())
     {
-        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
-            return true;
-        }
         return self::commonCheck('isBoolean', $strFieldName, $hashOptions);
     }
 
@@ -93,9 +84,6 @@ class DataConstraint
      */
     public static function isEmail($strFieldName, array $hashOptions = array())
     {
-        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
-            return true;
-        }
         return self::commonCheck('isEmail', $strFieldName, $hashOptions);
     }
 
@@ -109,10 +97,6 @@ class DataConstraint
      */
     public static function isArray($strFieldName, array $hashOptions = array())
     {
-        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
-            return true;
-        }
-
         if (!isset(static::$hashData[$strFieldName]) || !is_array(static::$hashData[$strFieldName])) {
             return false;
         }
@@ -131,5 +115,19 @@ class DataConstraint
     {
         return isset(static::$hashData[$strFieldNameA]) && isset(static::$hashData[$strFieldNameB])
         && static::$hashData[$strFieldNameA] === static::$hashData[$strFieldNameB];
+    }
+
+    /**
+     * Allows to check if an internal variable is null
+     * @param string $strFieldName
+     * @param array $hashOptions
+     * @return boolean
+     */
+    public static function isNull($strFieldName, array $hashOptions = array())
+    {
+        if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
+            return true;
+        }
+        return array_key_exists($strFieldName, static::$hashData) && is_null(static::$hashData[$strFieldName]);
     }
 }
