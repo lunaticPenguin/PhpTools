@@ -228,4 +228,17 @@ class Constraint extends atoum
             )
         )->isTrue();
     }
+
+    public function testIsNull()
+    {
+        $this->boolean(C::isNull(''))->isFalse();
+        $this->boolean(C::isNull(array()))->isFalse();
+        $this->boolean(C::isNull(new \stdClass()))->isFalse();
+        $this->boolean(C::isNull(42))->isFalse();
+        $this->boolean(C::isNull(42.1))->isFalse();
+
+        $this->boolean(C::isNull(true))->isFalse();
+        $this->boolean(C::isNull(false))->isFalse();
+        $this->boolean(C::isNull(null))->isTrue();
+    }
 }

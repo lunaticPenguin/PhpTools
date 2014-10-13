@@ -371,10 +371,15 @@ class DataConstraint extends atoum
         DC::bindData(array()); // reset
 
         $this->boolean(DC::isArray('plonk', array('required' => true)))->isFalse();
-        $this->boolean(DC::isArray('plonk', array('required' => false)))->isTrue();
+        $this->boolean(DC::isArray('plonk', array('required' => false)))->isFalse();
 
         DC::bindData(array('plonk' => array('Justin Bieber must die.')));
         $this->boolean(DC::isArray('plonk', array('required' => true)))->isTrue();
+        DC::bindData(array()); // reset
+
+        DC::bindData(array('plonk' => null));
+        $this->boolean(DC::isNull('plonk'))->isTrue();
+        $this->boolean(DC::isNull('plonk', array('required' => false)))->isTrue();
         DC::bindData(array()); // reset
     }
 }
