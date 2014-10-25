@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use App\Exceptions\ModelException;
+use App\Exceptions\ModelQueryException;
 use App\Tools\Constraint;
 use App\Tools\Validator;
 
@@ -35,7 +36,7 @@ abstract class AbstractModel
 
     /**
      * Returns information about the current model
-     * @param string $strInformation database|model|alias|primary_key|columns|available_columns
+     * @param string $strInformation database|alias|primary_key|columns|available_columns
      * @return mixed
      */
     public static function getModelInformation($strInformation = 'table')
@@ -251,7 +252,7 @@ abstract class AbstractModel
             static::$hashInfos['primary_key'],
             static::$hashInfos['alias']
         );
-        
+
         $objStatement = static::$objDb->prepare($strSql);
         $objStatement->bindValue(':' . static::$hashInfos['primary_key'], $intId, \PDO::PARAM_INT);
         $objStatement->execute();
@@ -317,7 +318,7 @@ abstract class AbstractModel
      *      ...
      *  ),
      *  'join'  => array(
-     *      'left|right|inner|outer' => array(AFFECTED_MODEL_#1, AFFECTED_MODEL_#2, ...),
+     *      'left|right|inner|outer' => array(OPTIONAL_FK_#1 => AFFECTED_MODEL_#1, AFFECTED_MODEL_#2, ...),
      *      ...
      *  ),
      *  'group' => array('AFFECTED_COLUMN_#1', 'AFFECTED_COLUMN_#2, ...),
@@ -328,14 +329,16 @@ abstract class AbstractModel
      *  'limit' => array(
      *      'start' => START_INDEX,
      *      'size'   => SIZE_VALUE
-     *  )
+     *  ),
+     *  'compute_total' => true|false (false as default): Indicates if the result must contains the total number of rows.
+     *      (If unspecified or false, the count query will not be executed)
      * )
      *
      *
      * @param array $arrayColumns
      * @param array $hashOptions where, in, limit, order by
      * @return array
-     * @throws \PDOException
+     * @throws ModelQueryException
      */
     public static function getGenericList(array $arrayColumns, array $hashOptions = array())
     {
@@ -359,8 +362,19 @@ abstract class AbstractModel
             foreach ($hashOptions['join'] as $strJoinType => $arrayModelToJoin) {
                 if (in_array(strtolower($strJoinType), array('left', 'right', 'inner', 'outer'))
                     && is_array($arrayModelToJoin)) {
-                    foreach ($arrayModelToJoin as $strModelToJoin) {
+                    foreach ($arrayModelToJoin as $mixedKey => $strModelToJoin) {
                         if (class_exists($strModelToJoin)) {
+
+                            // allows to join models using specific key (/!\ the key must exist in both models)
+                            $strForeignKey = $strModelToJoin::getModelInformation('primary_key');
+                            if (!is_integer($mixedKey) &&
+                                array_key_exists($mixedKey, static::getModelInformation('columns'))
+                                &&
+                                array_key_exists($mixedKey, $strModelToJoin::getModelInformation('available_columns'))
+                            ) {
+                                $strForeignKey = $mixedKey;
+                            }
+
                             $arrayJoins[] = sprintf(
                                 " %s %s.%s %s ON %s=%s",
                                 strtoupper($strJoinType). ' JOIN',
@@ -368,9 +382,9 @@ abstract class AbstractModel
                                 $strModelToJoin::getModelInformation('table'),
                                 $strModelToJoin::getModelInformation('alias'),
                                 static::getModelInformation('alias')
-                                    . '.' . $strModelToJoin::getModelInformation('primary_key'),
+                                    . '.' . $strForeignKey,
                                 $strModelToJoin::getModelInformation('alias')
-                                    . '.' . $strModelToJoin::getModelInformation('primary_key')
+                                    . '.' . $strForeignKey
                             );
 
                             // collect all available columns
@@ -436,23 +450,49 @@ abstract class AbstractModel
             $strLimit
         );
 
-        $objStatement = static::$objDb->prepare($strSql);
-        foreach ($hashWhereInfos['bind'] as $strParameter => $hashBindInfos) {
-            $objStatement->bindValue($strParameter, $hashBindInfos['value'], $hashBindInfos['type']);
+
+        try {
+            $objStatement = static::$objDb->prepare($strSql);
+            foreach ($hashWhereInfos['bind'] as $strParameter => $hashBindInfos) {
+                $objStatement->bindValue($strParameter, $hashBindInfos['value'], $hashBindInfos['type']);
+            }
+
+            // /!\ bind type value can be different of \PDO::PARAM_STR for having clause values
+            // (see self::findSuitableBindType calls for more details)
+            foreach ($hashHavingInfos['bind'] as $strParameter => $hashBindInfos) {
+                $objStatement->bindValue($strParameter, $hashBindInfos['value'], $hashBindInfos['type']);
+            }
+
+            $objStatement->execute();
+
+            $hashResult = array(
+                'results' => $objStatement->fetchAll(\PDO::FETCH_ASSOC),
+                'count' => $objStatement->rowCount()
+            );
+
+            /*
+             * If the model returns the total number of rows using pre-build query
+             */
+            if (isset($hashOptions['compute_total']) && $hashOptions['compute_total'] === true) {
+                $strSql = sprintf(
+                    "SELECT COUNT(%s) as total FROM %s.%s %s %s%s",
+                    static::$hashInfos['alias'] . static::$hashInfos['primary_key'],
+                    static::$hashInfos['database'],
+                    static::$hashInfos['table'],
+                    static::$hashInfos['alias'],
+                    $strJoin,
+                    $strGroup
+                );
+
+                $objStatement = static::$objDb->prepare($strSql);
+                $objStatement->execute();
+                $hashResult['total'] = $objStatement->fetch(\PDO::FETCH_ASSOC)['total'];
+            }
+
+            return $hashResult;
+        } catch(\PDOException $e) {
+            throw new ModelQueryException($e->getMessage(), $objStatement->errorCode());
         }
-
-        // /!\ bind type value can be different of \PDO::PARAM_STR for having clause values
-        // (see self::findSuitableBindType calls for more details)
-        foreach ($hashHavingInfos['bind'] as $strParameter => $hashBindInfos) {
-            $objStatement->bindValue($strParameter, $hashBindInfos['value'], $hashBindInfos['type']);
-        }
-
-        $objStatement->execute();
-
-        return array(
-            'results'   => $objStatement->fetchAll(\PDO::FETCH_ASSOC),
-            'count'     => $objStatement->rowCount()
-        );
     }
 
     /**
@@ -461,6 +501,8 @@ abstract class AbstractModel
      * @param string $strType
      * @param array $hashAvailableColumns
      * @return array
+     *
+     * @throws ModelQueryException
      */
     private static function computeWhereAndHavingClause(array $hashOptions, $strType, array $hashAvailableColumns)
     {
@@ -473,17 +515,24 @@ abstract class AbstractModel
             $arrayWheres = array();
             foreach ($hashOptions[$strType] as $strColumn => $hashWhereOptions) {
                 if (isset($hashAvailableColumns[$strColumn])) { // if the requested column belongs to available columns
-                    if (array_key_exists('value', $hashWhereOptions)) {
-                        $strPartType = '';
-                        if (!empty($arrayWheres)) { // if not empty then we need to force the use of a logical operator
-                            $strPartType = isset($hashWhereOptions['type'])
-                            && in_array(strtoupper($hashWhereOptions['type']), array('AND', 'OR'))
-                                ? strtoupper($hashWhereOptions['type']) : 'AND';
-                        }
 
-                        $strPartClause = isset($hashWhereOptions['clause'])
-                        && in_array(strtoupper($hashWhereOptions['clause']), array('=', '!=', '<>', '<', '<=', '>', '=>', 'IN', 'LIKE'))
-                            ? strtoupper($hashWhereOptions['clause']) : '=';
+                    $strPartType = '';
+                    if (!empty($arrayWheres)) { // if not empty then we need to force the use of a logical operator
+                        $strPartType = isset($hashWhereOptions['type'])
+                        && in_array(strtoupper($hashWhereOptions['type']), array('AND', 'OR'))
+                            ? strtoupper($hashWhereOptions['type']) : 'AND';
+                    }
+
+                    $strPartClause = isset($hashWhereOptions['clause'])
+                    && in_array(strtoupper($hashWhereOptions['clause']), array('=', '!=', '<>', '<', '<=', '>', '=>', 'IN', 'LIKE'))
+                        ? strtoupper($hashWhereOptions['clause']) : '=';
+
+                    if (array_key_exists('function', $hashWhereOptions)) {
+                        if ($strPartClause === 'IN') {
+                            throw new ModelQueryException(sprintf('[%s] Invalid clause for sql function use', strtoupper($strType)));
+                        }
+                        $strPartValue = $hashWhereOptions['function'];
+                    } elseif (array_key_exists('value', $hashWhereOptions)) {
 
                         if (is_array($hashWhereOptions['value'])) {
                             $strPartClause = 'IN';
@@ -517,12 +566,12 @@ abstract class AbstractModel
                                 $hashValuesToBind[$strPartValue]['type'] = self::findSuitableBindType($hashWhereOptions['value']);
                             }
                         }
+                    }
 
-                        if ($strPartClause === 'IN') {
-                            $arrayWheres[] = sprintf('%s %s IN (%s)', $strPartType, $strColumn, $strPartValue);
-                        } else {
-                            $arrayWheres[] = sprintf('%s %s %s %s', $strPartType, $strColumn, $strPartClause, $strPartValue);
-                        }
+                    if ($strPartClause === 'IN') {
+                        $arrayWheres[] = sprintf('%s %s IN (%s)', $strPartType, $strColumn, $strPartValue);
+                    } else {
+                        $arrayWheres[] = sprintf('%s %s %s %s', $strPartType, $strColumn, $strPartClause, $strPartValue);
                     }
                 }
             }
