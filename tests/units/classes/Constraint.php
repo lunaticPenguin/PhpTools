@@ -84,6 +84,13 @@ class Constraint extends atoum
         $this->boolean(C::isString('', array('min' => 0, 'max' => 2)))->isTrue();
         $this->boolean(C::isString('', array('min' => 2, 'max' => 1)))->isFalse();
         $this->boolean(C::isString('', array('min' => 1, 'max' => 2)))->isFalse();
+
+        $this->boolean(C::isString('', array('pattern' => C::STRING_FORMAT_DATE)))->isFalse();
+        $this->boolean(C::isString('', array('pattern' => C::STRING_FORMAT_DATETIME)))->isFalse();
+        $this->boolean(C::isString('2014-12-24 21:03:16', array('pattern' => C::STRING_FORMAT_DATE)))->isFalse();
+        $this->boolean(C::isString('2014-12-24', array('pattern' => C::STRING_FORMAT_DATETIME)))->isFalse();
+        $this->boolean(C::isString('2014-12-24', array('pattern' => C::STRING_FORMAT_DATE)))->isTrue();
+        $this->boolean(C::isString('2014-12-24 21:03:16', array('pattern' => C::STRING_FORMAT_DATETIME)))->isTrue();
     }
 
     public function testIsEmail()
@@ -107,6 +114,12 @@ class Constraint extends atoum
 
     public function testIsArray()
     {
+        $this->boolean(C::isArray(1))->isFalse();
+        $this->boolean(C::isArray(1.2))->isFalse();
+        $this->boolean(C::isArray(new \stdClass()))->isFalse();
+        $this->boolean(C::isArray(true))->isFalse();
+        $this->boolean(C::isArray(false))->isFalse();
+
         $this->boolean(C::isArray(array()))->isTrue();
         $this->boolean(C::isArray(array('a', 'b')))->isTrue();
 

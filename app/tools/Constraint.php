@@ -8,6 +8,9 @@ class Constraint
     const ARRAY_CONTAINS_ALL_VALUES = 2;
     const ARRAY_IDENTICAL_TO = 4;
 
+    const STRING_FORMAT_DATETIME = '/^[1-9]{1,3}[0-9]*-[0-9]{1,2}-[0-9]{1,2} [0-9]{2}:[0-9]{2}:[0-9]{2}$/';
+    const STRING_FORMAT_DATE = '/^[1-9]{1,3}[0-9]*-[0-9]{1,2}-[0-9]{1,2}$/';
+
     /**
      * Allows to check if a variable is a string, and if it has the specified min/max length if so
      *
@@ -23,6 +26,12 @@ class Constraint
 
         if (!is_string($strInput)) {
             return false;
+        }
+
+        if (isset($hashOptions['pattern']) && !empty($hashOptions['pattern'])) {
+            if (!preg_match($hashOptions['pattern'], $strInput)) {
+                return false;
+            }
         }
 
         if ($intMin !== -1 || $intMax !== -1) {
@@ -122,12 +131,12 @@ class Constraint
      * Allows to determine if an array has keys and/or values,
      * or if it's strictly identical to another array (keys + values)
      *
-     * @param array $arrayInput
+     * @param mixed $arrayInput
      * @param array $hashOptions
      *
      * @return boolean
      */
-    public static function isArray(array $arrayInput, array $hashOptions = array())
+    public static function isArray($arrayInput, array $hashOptions = array())
     {
         if (!is_array($arrayInput)) {
             return false;
