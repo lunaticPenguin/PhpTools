@@ -33,6 +33,8 @@ class Constraint extends atoum
 
         $this->boolean(C::isInteger(5, array('min' => 4, 'max' => 6)))->isTrue();
         $this->boolean(C::isInteger(5, array('min' => 6, 'max' => 4)))->isTrue();
+        $this->boolean(C::isInteger('5'))->isTrue();
+        $this->boolean(C::isInteger('5', array('min' => 6, 'max' => 4)))->isTrue();
     }
 
     public function testIsFloat()
@@ -55,6 +57,8 @@ class Constraint extends atoum
 
         $this->boolean(C::isFloat(5.6, array('min' => 4.1,  'max' => 6.1)))->isTrue();
         $this->boolean(C::isFloat(5.6, array('min' => 6.1,  'max' => 4.1)))->isTrue();
+        $this->boolean(C::isFloat('5.6'))->isTrue();
+        $this->boolean(C::isFloat('5.6', array('min' => 6.1,  'max' => 4.1)))->isTrue();
     }
 
     public function testIsBoolean()

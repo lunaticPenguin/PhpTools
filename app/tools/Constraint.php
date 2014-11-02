@@ -70,9 +70,9 @@ class Constraint
      */
     public static function isFloat($floatInput, array $hashOptions = array())
     {
-        $floatMin = isset($hashOptions['min']) ? (int) $hashOptions['min'] : null;
-        $floatMax = isset($hashOptions['max']) ? (int) $hashOptions['max'] : null;
-        return self::validateNumber($floatInput, 'is_float', $floatMin, $floatMax);
+        $intMin = isset($hashOptions['min']) ? (int) $hashOptions['min'] : null;
+        $intMax = isset($hashOptions['max']) ? (int) $hashOptions['max'] : null;
+        return self::validateNumber($floatInput, 'is_float', $intMin, $intMax);
     }
 
     /**
@@ -94,7 +94,13 @@ class Constraint
             $mixedMin = $mixedTmp;
         }
 
-        if (call_user_func($funcCallBack, $mixedNumber) === false) {
+        if (
+            !is_numeric($mixedNumber)
+            ||
+            $funcCallBack === 'is_integer' && filter_var($mixedNumber, FILTER_VALIDATE_INT) === false
+            ||
+            $funcCallBack === 'is_float' && filter_var($mixedNumber, FILTER_VALIDATE_FLOAT) === false
+        ) {
             return false;
         }
         if (!is_null($mixedMin) && $mixedNumber < $mixedMin) {
