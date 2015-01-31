@@ -307,7 +307,11 @@ abstract class AbstractModel
     }
 
     /**
-     * Fetch several rows using custom conditions, whose options must have the following format:
+     * Fetch several rows using custom conditions, whose options must have a specific format.
+     * /!\ Please note this method IS NOT the only way to select data from your database.
+     * It is really convenient for simple queries but if you are trying to do something exotic or something
+     * ultra-optimized with it, you're wrong.
+     *
      * array(
      *  'where|having' => array(
      *      'AFFECTED_COLUMN' => array(
@@ -329,11 +333,7 @@ abstract class AbstractModel
      *  'limit' => array(
      *      'start' => START_INDEX,
      *      'size'   => SIZE_VALUE
-     *  ),
-     *  'compute_total' => true|false (false as default): Indicates if the result must contains the total number of rows.
-     *      (If unspecified or false, the count query will not be executed)
-     * )
-     *
+     *  )
      *
      * @param array $arrayColumns
      * @param array $hashOptions where, in, limit, order by
@@ -342,6 +342,9 @@ abstract class AbstractModel
      */
     public static function getGenericList(array $arrayColumns, array $hashOptions = array())
     {
+        /**
+         * @var AbstractModel $strModelToJoin
+         */
         $strColumns = implode(',', $arrayColumns);
         $strJoin = '';
 
@@ -362,36 +365,51 @@ abstract class AbstractModel
             foreach ($hashOptions['join'] as $strJoinType => $arrayModelToJoin) {
                 if (in_array(strtolower($strJoinType), array('left', 'right', 'inner', 'outer'))
                     && is_array($arrayModelToJoin)) {
-                    foreach ($arrayModelToJoin as $mixedKey => $strModelToJoin) {
-                        if (class_exists($strModelToJoin)) {
+                    foreach ($arrayModelToJoin as $mixedKey => $mixedModelToJoin) {
 
-                            // allows to join models using specific key (/!\ the key must exist in both models)
-                            $strForeignKey = $strModelToJoin::getModelInformation('primary_key');
-                            if (!is_integer($mixedKey) &&
-                                array_key_exists($mixedKey, static::getModelInformation('columns'))
-                                &&
-                                array_key_exists($mixedKey, $strModelToJoin::getModelInformation('available_columns'))
-                            ) {
-                                $strForeignKey = $mixedKey;
-                            }
+                        $strOverriddenCondition = '';
+                        if (is_array($mixedModelToJoin)) {
+                            $strModelToJoin = isset($mixedModelToJoin['model']) ? $mixedModelToJoin['model'] : 'Model name not specified';
+                            $strOverriddenCondition = isset($mixedModelToJoin['condition']) ? $mixedModelToJoin['condition'] : '';
+                        } else {
+                            $strModelToJoin = (string) $mixedModelToJoin;
+                        }
 
-                            $arrayJoins[] = sprintf(
-                                " %s %s.%s %s ON %s=%s",
-                                strtoupper($strJoinType). ' JOIN',
-                                $strModelToJoin::getModelInformation('database'),
-                                $strModelToJoin::getModelInformation('table'),
-                                $strModelToJoin::getModelInformation('alias'),
-                                static::getModelInformation('alias')
-                                    . '.' . $strForeignKey,
-                                $strModelToJoin::getModelInformation('alias')
-                                    . '.' . $strForeignKey
-                            );
+                        if (!class_exists($strModelToJoin)) {
+                            throw new ModelQueryException(sprintf('JOIN - Non-existent  model specified [%s]', $strModelToJoin));
+                        }
 
-                            // collect all available columns
-                            $strAlias = $strModelToJoin::getModelInformation('alias');
-                            foreach (array_keys($strModelToJoin::getModelInformation('columns')) as $strColumn => $intType) {
-                                $hashAvailableColumns[sprintf('%s.%s', $strAlias, $strColumn)] = $intType;
-                            }
+                        // allows to join models using specific key (/!\ the key must exist in both models)
+                        $strForeignKey = $strModelToJoin::getModelInformation('primary_key');
+                        if (!is_integer($mixedKey) &&
+                            array_key_exists($mixedKey, static::getModelInformation('columns'))
+                            &&
+                            array_key_exists($mixedKey, $strModelToJoin::getModelInformation('available_columns'))
+                        ) {
+                            $strForeignKey = $mixedKey;
+                        }
+
+                        $strCondition = sprintf(
+                            '%s=%s',static::getModelInformation('alias') . '.' . $strForeignKey,
+                            $strModelToJoin::getModelInformation('alias'). '.' . $strForeignKey
+                        );
+                        if (!empty($strOverriddenCondition)) {
+                            $strCondition = $strOverriddenCondition;
+                        }
+
+                        $arrayJoins[] = sprintf(
+                            " %s %s.%s %s ON %s",
+                            strtoupper($strJoinType). ' JOIN',
+                            $strModelToJoin::getModelInformation('database'),
+                            $strModelToJoin::getModelInformation('table'),
+                            $strModelToJoin::getModelInformation('alias'),
+                            $strCondition
+                        );
+
+                        // collect all available columns
+                        $strAlias = $strModelToJoin::getModelInformation('alias');
+                        foreach (array_keys($strModelToJoin::getModelInformation('columns')) as $strColumn => $intType) {
+                            $hashAvailableColumns[sprintf('%s.%s', $strAlias, $strColumn)] = $intType;
                         }
                     }
                 }
@@ -437,7 +455,7 @@ abstract class AbstractModel
             }
         }
         $strSql = sprintf(
-            "SELECT %s FROM %s.%s %s %s%s%s%s%s%s",
+            "SELECT SQL_CALC_FOUND_ROWS, %s FROM %s.%s %s %s%s%s%s%s%s",
             $strColumns,
             static::$hashInfos['database'],
             static::$hashInfos['table'],
@@ -449,7 +467,6 @@ abstract class AbstractModel
             $strGroup,
             $strLimit
         );
-
 
         try {
             $objStatement = static::$objDb->prepare($strSql);
@@ -470,24 +487,9 @@ abstract class AbstractModel
                 'count' => $objStatement->rowCount()
             );
 
-            /*
-             * If the model returns the total number of rows using pre-build query
-             */
-            if (isset($hashOptions['compute_total']) && $hashOptions['compute_total'] === true) {
-                $strSql = sprintf(
-                    "SELECT COUNT(%s) as total FROM %s.%s %s %s%s",
-                    static::$hashInfos['alias'] . static::$hashInfos['primary_key'],
-                    static::$hashInfos['database'],
-                    static::$hashInfos['table'],
-                    static::$hashInfos['alias'],
-                    $strJoin,
-                    $strGroup
-                );
-
-                $objStatement = static::$objDb->prepare($strSql);
-                $objStatement->execute();
-                $hashResult['total'] = $objStatement->fetch(\PDO::FETCH_ASSOC)['total'];
-            }
+            $objStatement = static::$objDb->prepare("SELECT FOUND_ROWS() AS total");
+            $objStatement->execute();
+            $hashResult['total'] = $objStatement->fetch(\PDO::FETCH_ASSOC)['total'];
 
             return $hashResult;
         } catch(\PDOException $e) {
