@@ -1,5 +1,6 @@
 <?php
 namespace App\Tools;
+use App\Models\AbstractModel;
 
 /**
  * Class ModelConstraint.
@@ -20,6 +21,9 @@ class ModelConstraint
      */
     public static function alreadyColumnExists($strClassModel, $strColumn, $mixedValue)
     {
+        /**
+         * @var AbstractModel $strClassModel
+         */
         self::checkMappingOptions(array('key_model' => $strClassModel, 'key_column' => $strColumn));
 
         return $strClassModel::getGenericList(
@@ -46,6 +50,9 @@ class ModelConstraint
      */
     public static function alreadyPairColumnExists($strClassModel, $strColumnA, $mixedValueA, $strColumnB, $mixedValueB)
     {
+        /**
+         * @var AbstractModel $strClassModel
+         */
         self::checkMappingOptions(array('key_model' => $strClassModel, 'key_column' => $strColumnA));
         self::checkMappingOptions(array('key_model' => $strClassModel, 'key_column' => $strColumnB));
 
@@ -68,6 +75,9 @@ class ModelConstraint
      */
     protected static function checkMappingOptions(array $hashOptions)
     {
+        /**
+         * @var AbstractModel $strClassModel
+         */
         if (isset($hashOptions['key_model'])) {
             $hashOptions['model'] = $hashOptions['key_model'];
         }
@@ -75,18 +85,18 @@ class ModelConstraint
             $hashOptions['column'] = $hashOptions['key_column'];
         }
 
-        $hashOptions['model'] = isset($hashOptions['model']) ? $hashOptions['model'] : '';
+        $strClassModel  = isset($hashOptions['model']) ? $hashOptions['model'] : '';
         $hashOptions['column'] = isset($hashOptions['column']) ? $hashOptions['column'] : '';
 
         if (!class_exists($hashOptions['model'])) {
             throw new \Exception(sprintf('ModelConstraint - Non-existent model provided (%s)', $hashOptions['model']));
         }
 
-        if (!isset($hashOptions['model']::getModelInformation('available_columns')[$hashOptions['column']])) {
+        if (!isset($strClassModel::getModelInformation('available_columns')[$hashOptions['column']])) {
             throw new \Exception(
                 sprintf(
                     'ModelConstraint - Non-existent column provided for model %s (%s)',
-                    $hashOptions['model'],
+                    $strClassModel,
                     $hashOptions['column']
                 )
             );
