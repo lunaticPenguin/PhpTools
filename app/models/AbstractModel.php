@@ -507,7 +507,7 @@ abstract class AbstractModel
         $strCountSql = "SELECT FOUND_ROWS() as nb;";
 
         $objStatement = self::$objDb->prepare($strCountSql);
-        $objStatement->execute($strCountSql);
+        $objStatement->execute();
 
         $data = $objStatement->fetch(\PDO::FETCH_ASSOC);
         $hashResults['total'] = (isset($data['nb'])) ? $data['nb'] : 0;
