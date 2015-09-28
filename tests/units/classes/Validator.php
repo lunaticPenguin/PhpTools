@@ -62,5 +62,21 @@ class Validator extends atoum
 
         // after a call to V::getMessages, the validator is clear and ready for new tests
         $this->boolean(V::isValid())->isTrue();
+
+        // getMessages with specific fieldnames
+
+        V::validate(false, 'bli', 'fieldnameA');
+        V::validate(false, 'blo', 'fieldnameB');
+
+        $arrayMsg = V::getMessages('fieldnameA');
+        $this->string($arrayMsg[0])->isEqualTo('bli');
+
+        $arrayMsg = V::getMessages('fieldnameB');
+        $this->string($arrayMsg[0])->isEqualTo('blo');
+
+
+        $arrayMsg = V::getMessages();
+        $this->array($arrayMsg)->hasKey('fieldnameA');
+        $this->array($arrayMsg)->hasKey('fieldnameB');
     }
 }

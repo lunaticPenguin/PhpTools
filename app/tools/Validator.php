@@ -31,8 +31,9 @@ class Validator
                     } else {
                         self::$arrayMsg[$strFieldName][] = $strMsg;
                     }
+                } else {
+                    self::$arrayMsg[] = $strMsg;
                 }
-                self::$arrayMsg[] = $strMsg;
             }
         }
         return $boolStatus;
@@ -50,10 +51,17 @@ class Validator
     /**
      * Returns array of potential errors messages and clear the validator for a potential next use.
      *
+     * @param string $strFieldName if specified, tries to return corresponding error messages.
+     *  If not empty the validator isn't not cleaned.
+     *
      * @return array
      */
-    public static function getMessages()
+    public static function getMessages($strFieldName = '')
     {
+        if (array_key_exists($strFieldName, self::$arrayMsg)) {
+            return self::$arrayMsg[$strFieldName];
+        }
+
         $arrayMsg = self::$arrayMsg;
         self::reset();
         return $arrayMsg;
