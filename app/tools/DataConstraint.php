@@ -15,7 +15,7 @@ class DataConstraint
      * @param array $hashOptions
      * @return bool
      */
-    protected function commonCheck($strMethodName, $strFieldName, array $hashOptions)
+    protected static function commonCheck($strMethodName, $strFieldName, array $hashOptions)
     {
         if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
             return true;
