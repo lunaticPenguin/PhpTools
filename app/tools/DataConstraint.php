@@ -17,9 +17,19 @@ class DataConstraint
      */
     protected static function commonCheck($strMethodName, $strFieldName, array $hashOptions)
     {
+        // if required is explicitly facultative
         if (isset($hashOptions['required']) && $hashOptions['required'] === false && !isset(static::$hashData[$strFieldName])) {
             return true;
         }
+
+        // quickfix, ugly, sorry (for string, empty, if required)
+        if ($strMethodName === 'isString') {
+            $boolRequired = isset($hashOptions['required']) && $hashOptions['required'] === true;
+            if ($boolRequired && (!isset(static::$hashData[$strFieldName]) || static::$hashData[$strFieldName] === '')) {
+                return false;
+            }
+        }
+
         return isset(static::$hashData[$strFieldName])
         && Constraint::$strMethodName(static::$hashData[$strFieldName], $hashOptions);
     }
@@ -37,7 +47,7 @@ class DataConstraint
      * Allows to check if an internal variable is a string, and if it has the specified min/max length if so
      *
      * @param $strFieldName
-     * @param array $hashOptions : optionnal min, max values
+     * @param array $hashOptions : optional min, max values
      * @return bool|void
      */
     public static function isString($strFieldName, array $hashOptions = array())

@@ -183,7 +183,7 @@ class TestingAbstractFactory extends atoum
             );
     }
 
-    public function testGetGenericListList()
+    public function testGetGenericList()
     {
         TAF::setPdoInstance(DI::getDefault()->get('db'));
         $hashOptions = array(
