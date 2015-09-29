@@ -68,6 +68,20 @@ class Validator
     }
 
     /**
+     * Indicates if errors have been collected during the last process
+     *
+     * @param string $strFieldName if specified, indicates if the corresponding field has error(s)
+     * @return boolean
+     */
+    public static function hasErrors($strFieldName = '')
+    {
+        if (!empty($strFieldName)) {
+            return array_key_exists($strFieldName, self::$arrayMsg) ? !empty(self::$arrayMsg[$strFieldName]) : false;
+        }
+        return !empty(self::$arrayMsg);
+    }
+
+    /**
      * Clear the validator for a potential next use.
      */
     public static function reset()

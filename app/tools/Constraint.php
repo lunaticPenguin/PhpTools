@@ -14,7 +14,7 @@ class Constraint
     /**
      * Allows to check if a variable is a string, and if it has the specified min/max length if so
      *
-     * @param $strInput
+     * @param mixed $strInput
      * @param array $hashOptions : optional min, max values
      *
      * @return boolean
@@ -48,7 +48,7 @@ class Constraint
     /**
      * Allows to check if a variable is an integer and if it respects an optional range, if so
      *
-     * @param $intInput
+     * @param mixed $intInput
      * @param array $hashOptions
      *
      * @return boolean
@@ -63,7 +63,7 @@ class Constraint
     /**
      * Allows to check if a variable is a float and if it respects an optional range, if so
      *
-     * @param $floatInput
+     * @param mixed $floatInput
      * @param array $hashOptions
      *
      * @return bool
@@ -79,10 +79,10 @@ class Constraint
      * Internal check function for all numbers' types (int, float)..
      * This function can handle a test for an optional range check.
      *
-     * @param $mixedNumber
-     * @param $funcCallBack
-     * @param $mixedMin
-     * @param $mixedMax
+     * @param mixed $mixedNumber
+     * @param string $funcCallBack
+     * @param mixed $mixedMin
+     * @param mixed $mixedMax
      *
      * @return bool
      */

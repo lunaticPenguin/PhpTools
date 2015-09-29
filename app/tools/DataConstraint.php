@@ -46,7 +46,7 @@ class DataConstraint
     /**
      * Allows to check if an internal variable is a string, and if it has the specified min/max length if so
      *
-     * @param $strFieldName
+     * @param string $strFieldName
      * @param array $hashOptions : optional min, max values
      * @return bool|void
      */
@@ -56,7 +56,9 @@ class DataConstraint
     }
 
     /**
-     * @param $strFieldName
+     * Check if a field contains a integer number
+     *
+     * @param string $strFieldName
      * @param array $hashOptions
      * @return bool
      */
@@ -66,7 +68,9 @@ class DataConstraint
     }
 
     /**
-     * @param $strFieldName
+     * Check if a field contains a float number
+     *
+     * @param string $strFieldName
      * @param array $hashOptions
      * @return bool
      */
@@ -76,7 +80,9 @@ class DataConstraint
     }
 
     /**
-     * @param $strFieldName
+     * Check if a field contains a boolean value
+     *
+     * @param string $strFieldName
      * @param array $hashOptions
      * @return bool
      */
@@ -88,7 +94,7 @@ class DataConstraint
     /**
      * Allows to check if an internal variable contains a valid email
      *
-     * @param $strFieldName
+     * @param string $strFieldName
      * @param array $hashOptions
      * @return bool
      */
@@ -117,8 +123,8 @@ class DataConstraint
     /**
      * Allows to check if an internal variable is identical to another internal variable
      *
-     * @param $strFieldNameA
-     * @param $strFieldNameB
+     * @param string $strFieldNameA
+     * @param string $strFieldNameB
      * @return boolean
      */
     public static function isIdenticalTo($strFieldNameA, $strFieldNameB)

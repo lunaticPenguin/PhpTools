@@ -79,4 +79,16 @@ class Validator extends atoum
         $this->array($arrayMsg)->hasKey('fieldnameA');
         $this->array($arrayMsg)->hasKey('fieldnameB');
     }
+
+    public function testHasErrors()
+    {
+        V::validate(false, 'bli', 'fieldNameA');
+        V::validate(false, 'bli', 'fieldNameB');
+        V::validate(true, 'bli', 'fieldNameD');
+
+        $this->boolean(V::hasErrors('fieldNameA'))->isTrue();
+        $this->boolean(V::hasErrors('fieldNameB'))->isTrue();
+        $this->boolean(V::hasErrors('fieldNameC'))->isFalse();
+        $this->boolean(V::hasErrors('fieldNameD'))->isFalse();
+    }
 }
