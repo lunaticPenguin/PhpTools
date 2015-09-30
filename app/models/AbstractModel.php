@@ -4,6 +4,7 @@ namespace App\Models;
 use App\Exceptions\ModelException;
 use App\Exceptions\ModelQueryException;
 use App\Tools\Constraint;
+use App\Tools\CustomPDO\CustomPDO;
 use App\Tools\Validator;
 
 /**
@@ -30,7 +31,7 @@ abstract class AbstractModel
     /**
      * PDO instance.
      * (A better way is to use the DI pattern, but here the library can be used in many projects)
-     * @var \PDO instance
+     * @var CustomPDO instance
      */
     protected static $objDb;
 
@@ -56,8 +57,9 @@ abstract class AbstractModel
     
     /**
      * Inject PDO instance to the current model
+     * @param CustomPDO $objDb (ideally, should be CustomPDO instance, but can be PDO instance too)
      */
-    public static function setPdoInstance(\PDO $objDb)
+    public static function setPdoInstance($objDb)
     {
 	    static::$objDb = $objDb;
     }
