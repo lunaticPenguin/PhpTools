@@ -71,6 +71,8 @@ class LogPDO extends CustomPDO
      */
     public function notify($strRawQuery, $strBuildQuery)
     {
+        parent::notify($strRawQuery, $strBuildQuery);
+
         $strKey = md5($strRawQuery);
         $this->arrayQueryIds[] = $this->hashQueryIndexes[$strKey];
         ++$this->arrayQueries[$this->hashQueryIndexes[$strKey]]['count_execute'];
