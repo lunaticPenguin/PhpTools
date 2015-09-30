@@ -101,4 +101,35 @@ class CustomPDOStatement
     {
         return call_user_func_array(array($this->objStatement, $strMethod), $hashParams);
     }
+
+    /**
+     * Fetch single result or empty array (if no results)
+     *
+     * @param int $intFetchType
+     * @return array
+     */
+    public function singleResult($intFetchType = \PDO::FETCH_ASSOC)
+    {
+        if ($this->objStatement->rowCount() > 0) {
+            return $this->objStatement->fetch($intFetchType);
+        }
+
+        // todo: change default result, depending on $intFetchType value
+        return array();
+    }
+
+    /**
+     * Fetch multiple results or empty array (if no results)
+     * @param int $intFetchType
+     * @return array
+     */
+    public function multipleResult($intFetchType = \PDO::FETCH_ASSOC)
+    {
+        if ($this->objStatement->rowCount() > 0) {
+            return $this->objStatement->fetchAll($intFetchType);
+        }
+
+        // todo: change default result, depending on $intFetchType value
+        return array();
+    }
 }
