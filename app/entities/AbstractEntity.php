@@ -28,24 +28,26 @@ abstract class AbstractEntity implements \IteratorAggregate, \ArrayAccess
      * Construct a new entity that used models layer
      *
      * @param integer $intId
+     * @param array $hashData Fields to hydrate the current entity
      * @throws EntityException
      */
-    public function __construct($intId = 0)
+    public function __construct($intId = 0, array $hashData = array())
     {
         $intId = (integer) $intId;
         if ($intId < 0) {
             throw new EntityException(sprintf('Wrong entity id given (%d)', $intId));
         }
         $this->intId = $intId;
+        $this->hashFields = $hashData;
     }
 
     /**
      * Allows to save changes for the current entity
-     * @param $hashData
+     * @param array $hashData
      * @param int $intType
-     * @return boolean
+     * @return array data of the created/updated entity
      */
-    protected abstract function processSave($hashData, $intType = self::PROCESS_CREATE);
+    protected abstract function processSave(&$hashData, $intType = self::PROCESS_CREATE);
 
     /**
      * Allows to check data coherence during a process save.
@@ -54,21 +56,20 @@ abstract class AbstractEntity implements \IteratorAggregate, \ArrayAccess
      * @param integer $intType
      * @return boolean
      */
-    protected abstract function checkSave($hashData, $intType = self::PROCESS_CREATE);
+    protected abstract function checkSave(&$hashData, $intType = self::PROCESS_CREATE);
 
     /**
      * Process save operation for the current entity.
      *
-     * @param array $hashData
      * @param integer $intType
-     * @return boolean
+     * @return array data of the created/updated entity
      */
-    final public function save($hashData, $intType = self::PROCESS_CREATE)
+    final public function save($intType = self::PROCESS_CREATE)
     {
-        if (!$this->checkSave($hashData, $intType)) {
+        if (!$this->checkSave($this->hashFields, $intType)) {
             return false;
         }
-        return $this->processSave($hashData);
+        return $this->processSave($this->hashFields);
     }
 
      /**
@@ -148,4 +149,26 @@ abstract class AbstractEntity implements \IteratorAggregate, \ArrayAccess
              unset($this->hashFields[$offset]);
          }
      }
+
+    /**
+     * Allows to hydrate entity in one time, with merge or replace
+     *
+     * @param array $hashData
+     * @param bool $boolMerge
+     *
+     * @return AbstractEntity
+     */
+    public function hydrate(array $hashData, $boolMerge = false)
+    {
+        if (!$boolMerge) {
+            $this->hashFields = $hashData;
+        } else {
+            foreach ($hashData as $strFieldName => $mixedData) {
+                if (!array_key_exists($strFieldName, $this->hashFields)) {
+                    $this->hashFields[$strFieldName] = $mixedData;
+                }
+            }
+        }
+        return $this;
+    }
  }

@@ -32,4 +32,21 @@ class Tools
         }
         return $hashResult;
     }
+
+    /**
+     * Filter array's keys from an array collection with values from another one
+     *
+     * @param array $arrayCollection
+     * @param array $arrayList
+     * @param bool $boolIsWL
+     * @return array
+     */
+    public static function filterCollectionFromArray(array $arrayCollection, array $arrayList, $boolIsWL = true)
+    {
+        $arrayNewCollection = array();
+        foreach ($arrayCollection as $mixedKey => $hashRow) {
+            $arrayNewCollection[$mixedKey] = self::filterFromArray($hashRow, $arrayList, $boolIsWL);
+        }
+        return $arrayNewCollection;
+    }
 }

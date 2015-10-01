@@ -98,7 +98,7 @@ abstract class AbstractModel
         foreach (static::$hashInfos['columns'] as $strColumn => $hashColumnInfo) {
             if (static::$hashInfos['primary_key'] !== $strColumn) {
                 $hashKeys[$strColumn] = ':' .  $strColumn;
-                $hashValues[$strColumn] = $hashData[$strColumn];
+                $hashValues[$strColumn] = (isset($hashData[$strColumn]) ? $hashData[$strColumn] : null);
             }
         }
         $strSql = sprintf(
