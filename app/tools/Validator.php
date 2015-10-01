@@ -86,7 +86,7 @@ class Validator
      */
     public static function reset()
     {
-        self::$arrayMsg = null;
+        self::$arrayMsg = array();
         self::$boolStatus = true;
     }
 }
