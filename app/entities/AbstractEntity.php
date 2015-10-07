@@ -25,6 +25,13 @@ abstract class AbstractEntity implements \IteratorAggregate, \ArrayAccess
     protected $hashFields = array();
 
     /**
+     * Potential dependency injector.
+     * (You have to set it before any use)
+     * @var StdClass|null
+     */
+    protected static $objDI;
+
+    /**
      * Construct a new entity that used models layer
      *
      * @param integer $intId
@@ -39,6 +46,15 @@ abstract class AbstractEntity implements \IteratorAggregate, \ArrayAccess
         }
         $this->intId = $intId;
         $this->hashFields = $hashData;
+    }
+
+    /**
+     * Allows to set the DI (facultative)
+     * @param $objDI
+     */
+    public static function setDI($objDI)
+    {
+        static::$objDI = $objDI;
     }
 
     /**
