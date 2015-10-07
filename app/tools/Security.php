@@ -29,6 +29,7 @@ class Security
      */
     public static function loadUser(ISecurityEntity $objUserEntity)
     {
+        self::$objUser = $objUserEntity;
         self::$hashAccesses = $objUserEntity->getACL();
         self::$hashObjectsAccesses = $objUserEntity->getACO();
     }
