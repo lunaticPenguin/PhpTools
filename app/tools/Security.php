@@ -18,20 +18,18 @@ class Security
     protected static $hashObjectsAccesses = array();
 
     /**
+     * Current user
+     * @var ISecurityEntity
+     */
+    protected static $objUser = null;
+
+    /**
      * Loads standards accesses (areas)
      * @param ISecurityEntity $objUserEntity
      */
-    public static function loadAccesses(ISecurityEntity $objUserEntity)
+    public static function loadUser(ISecurityEntity $objUserEntity)
     {
         self::$hashAccesses = $objUserEntity->getACL();
-    }
-
-    /**
-     * Loads objects accesses
-     * @param ISecurityEntity $objUserEntity
-     */
-    public static function loadObjectAccesses(ISecurityEntity $objUserEntity)
-    {
         self::$hashObjectsAccesses = $objUserEntity->getACO();
     }
 
@@ -50,15 +48,14 @@ class Security
     /**
      * Indicates if an "accessor" object is authorized to access to an "accessed" object, with specified
      *
-     * @param ISecurityEntity $objAccessorObject
      * @param ISecurityEntity $objAccessedObject
      * @param integer $intLevel access level (read by default)
      * @return bool
      */
-    public static function hasObjectAccess(ISecurityEntity $objAccessorObject, ISecurityEntity $objAccessedObject, $intLevel = self::PERMISSION_READ)
+    public static function hasObjectAccess(ISecurityEntity $objAccessedObject, $intLevel = self::PERMISSION_READ)
     {
+        $strAccessorClassName = get_class(self::$objUser);
         $strAccessedClassName = get_class($objAccessedObject);
-        $strAccessorClassName = get_class($objAccessorObject);
 
         if (
             !array_key_exists($strAccessorClassName, self::$hashObjectsAccesses)
@@ -76,6 +73,16 @@ class Security
         }
 
         return self::shareANDBits($intLevel, self::$hashObjectsAccesses[$strAccessorClassName][$strAccessedClassName][$objAccessedObject->getID()]);
+    }
+
+    /**
+     * Indicates if a user is logged in.
+     * Technically, this method must only be used when the Security class owns the current user
+     * @return bool
+     */
+    public static function isLoggedIn()
+    {
+        return self::$objUser instanceof ISecurityEntity;
     }
 
     /**
