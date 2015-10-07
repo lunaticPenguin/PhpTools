@@ -3,6 +3,7 @@ namespace App\Models;
 
 use App\Exceptions\ModelException;
 use App\Exceptions\ModelQueryException;
+use App\Observers\ObserverHandler;
 use App\Tools\Constraint;
 use App\Tools\CustomPDO\CustomPDO;
 use App\Tools\Validator;
@@ -211,7 +212,7 @@ abstract class AbstractModel
      */
     public static function deleteById($intId)
     {
-        return static::deleteByListId(array($intId));
+        return static::deleteByListId(array((int) $intId));
     }
 
     /**
@@ -713,5 +714,138 @@ abstract class AbstractModel
     final public static function isInTransaction()
     {
         return static::$objDb->inTransaction();
+    }
+
+    /**
+     * Allow to create row safely, catch exception(s) and broadcast errors through observer
+     * @see AbstractModel::create()
+     * @param array $hashData
+     * @return integer number of affected rows
+     */
+    final public static function createSafely(array $hashData)
+    {
+        $intId = 0;
+        try {
+            $intId = self::create($hashData);
+        } catch (ModelException $e) {
+            ObserverHandler::applyHook(
+                'model_create_failure',
+                array(
+                    'model'     => get_called_class(),
+                    'data'      => $hashData,
+                    'exception' => $e,
+                    'query'     => self::$objDb->getLastQuery()
+                )
+            );
+        } catch (\PDOException $e) {
+            ObserverHandler::applyHook(
+                'model_create_failure',
+                array(
+                    'model'     => get_called_class(),
+                    'data'      => $hashData,
+                    'exception' => $e,
+                    'query'     => self::$objDb->getLastQuery()
+                )
+            );
+        }
+        return $intId;
+    }
+
+    /**
+     * Allow to update row safely, catch exception(s) and broadcast errors through observer
+     * @see AbstractModel::updateById()
+     * @param array $hashData
+     * @param array $arrayColumnList columns' list (optional)
+     * @return integer number of affected rows
+     */
+    final public static function updateSafely(array $hashData, array $arrayColumnList = array())
+    {
+        $intId = 0;
+        try {
+            $intId = self::updateById($hashData, $arrayColumnList);
+        } catch (ModelException $e) {
+            ObserverHandler::applyHook(
+                'model_update_failure',
+                array(
+                    'model'     => get_called_class(),
+                    'data'      => $hashData,
+                    'exception' => $e,
+                    'query'     => self::$objDb->getLastQuery()
+                )
+            );
+        } catch (\PDOException $e) {
+            ObserverHandler::applyHook(
+                'model_update_failure',
+                array('model'   => get_called_class(),
+                    'data'      => $hashData,
+                    'exception' => $e,
+                    'query'     => self::$objDb->getLastQuery()
+                )
+            );
+        }
+        return $intId;
+    }
+
+    /**
+     * Allow to delete several rows safely, using an identifiers list. Catch exception and broadcast errors through observer
+     * @see AbstractModel::deleteByListId()
+     * @param array $arrayInputIds
+     * @return integer
+     */
+    final public static function deleteSafely(array $arrayInputIds)
+    {
+        $intCountRows = 0;
+        try {
+            $intCountRows = self::deleteByListId($arrayInputIds);
+        } catch (\PDOException $e) {
+            ObserverHandler::applyHook(
+                'model_delete_failure',
+                array(
+                    'model'     => get_called_class(),
+                    'data'      => $arrayInputIds,
+                    'exception' => $e,
+                    'query'     => self::$objDb->getLastQuery()
+                )
+            );
+        }
+        return $intCountRows;
+    }
+
+    /**
+     * Allows to execute safely a custom method in a subclass to AbstractModel.
+     * [UNSTABLE]
+     * @param string $strMethodName
+     * @param mixed $mixedParams
+     * @return mixed $mixedResult
+     */
+    final public static function executeSafely($strMethodName, $mixedParams)
+    {
+        $mixedResult = null;
+        try {
+            $mixedResult = static::$strMethodName($mixedParams);
+        } catch (\PDOException $e) {
+            ObserverHandler::applyHook(
+                'model_custom_query_failure',
+                array(
+                    'model'     => get_called_class(),
+                    'method'    => $strMethodName,
+                    'data'      => $mixedParams,
+                    'exception' => $e,
+                    'query'     => self::$objDb->getLastQuery()
+                )
+            );
+        } catch (ModelException $e) {
+            ObserverHandler::applyHook(
+                'model_custom_query_failure',
+                array(
+                    'model'     => get_called_class(),
+                    'method'    => $strMethodName,
+                    'data'      => $mixedParams,
+                    'exception' => $e,
+                    'query'     => self::$objDb->getLastQuery()
+                )
+            );
+        }
+        return $mixedResult;
     }
 }
