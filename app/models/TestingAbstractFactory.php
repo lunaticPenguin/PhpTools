@@ -3,9 +3,8 @@ namespace App\Models;
 
 use App\Tools\DataConstraint;
 use App\Tools\Validator;
-use Phalcon\DI;
 
-class TestingAbstractFactory extends AbstractModel
+class TestingAbstractFactory extends AbstractRelationalModel
 {
     protected static $hashInfos = array(
         'database'      => 'phptools',
@@ -75,6 +74,6 @@ class TestingAbstractFactory extends AbstractModel
                 'taf_count_int'    => 'DESC',
             )
         );
-        return self::getList(array('taf_id', 'taf_name', 'taf_count_int', 'taf_count_int % 2 as modulo'), $hashOptions);
+        return self::getGenericList(array('taf_id', 'taf_name', 'taf_count_int', 'taf_count_int % 2 as modulo'), $hashOptions);
     }
 }
