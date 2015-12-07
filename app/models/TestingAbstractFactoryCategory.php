@@ -3,9 +3,8 @@ namespace App\Models;
 
 use App\Tools\DataConstraint;
 use App\Tools\Validator;
-use Phalcon\DI;
 
-class TestingAbstractFactoryCategory extends AbstractModel
+class TestingAbstractFactoryCategory extends AbstractRelationalModel
 {
     protected static $hashInfos = array(
         'database'      => 'phptools',
