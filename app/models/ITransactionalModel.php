@@ -2,12 +2,6 @@
 
 namespace App\Models;
 
-/**
- * Interface ITransactionalModel.
- * Defines behaviour for transactional model
- *
- * @package App\Models
- */
 interface ITransactionalModel
 {
     /**

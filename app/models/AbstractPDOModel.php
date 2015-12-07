@@ -9,7 +9,7 @@ use App\Tools\Constraint;
 use App\Tools\CustomPDO\CustomPDO;
 use App\Tools\Validator;
 
-abstract class AbstractRelationalModel extends AbstractModel implements ITransactionalModel
+abstract class AbstractPDOModel extends AbstractModel implements ITransactionalModel
 {
     protected static $hashInfos = array(
         'database'      => '',
@@ -33,6 +33,41 @@ abstract class AbstractRelationalModel extends AbstractModel implements ITransac
     public static function setPdoInstance($objDb)
     {
         static::$objDb = $objDb;
+    }
+
+    /**
+     * Allows to indicate which column needs to have specific type with several options
+     * before any insert or update query attempts.
+     * This method MUST be overridden or called to keep coherent models.
+     *
+     * @param array $hashData
+     * @param bool $boolIsUpdating
+     *
+     * @return boolean
+     */
+    protected static function validateData(array &$hashData, $boolIsUpdating)
+    {
+        $strCurrentDatetime = (new \DateTime())->format('Y-m-d H:i:s');
+        $strCreatedAtFieldName = sprintf('%s_created_at', static::$hashInfos['alias']);
+        $strUpdatedAtFieldName = sprintf('%s_updated_at', static::$hashInfos['alias']);
+
+        if (!$boolIsUpdating) {
+            if (isset($hashData[$strUpdatedAtFieldName])) {
+                unset($hashData[$strUpdatedAtFieldName]);
+            }
+            if (array_key_exists($strCreatedAtFieldName, static::$hashInfos['columns'])) {
+                $hashData[$strCreatedAtFieldName] = $strCurrentDatetime;
+            }
+        } else {
+            if (isset($hashData[$strCreatedAtFieldName])) {
+                unset($hashData[$strCreatedAtFieldName]);
+            }
+            if (array_key_exists($strUpdatedAtFieldName, static::$hashInfos['columns'])) {
+                $hashData[$strUpdatedAtFieldName] = $strCurrentDatetime;
+            }
+        }
+
+        return true;
     }
 
     /**

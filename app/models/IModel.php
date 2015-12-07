@@ -33,7 +33,7 @@ interface IModel
     public static function deleteByListId(array $arrayInputIds);
 
     /**
-     * Delete a single row using its identifier
+     * Delete a single row using it's identifier
      * @param $intId
      * @return integer
      * @throws ModelException
@@ -96,7 +96,7 @@ interface IModel
     public static function deleteSafely(array $arrayInputIds);
 
     /**
-     * Allows to execute safely a custom method in a subclass model.
+     * Allows to execute safely a custom method in a subclass to AbstractModel.
      * [UNSTABLE]
      * @param string $strMethodName
      * @param mixed $mixedParams
