@@ -25,6 +25,12 @@ interface ISecurityEntity
     public function getACL();
 
     /**
+     * Returns groups the entity belongs to
+     * @return mixed
+     */
+    public function getGroups();
+
+    /**
      * Returns identifier for accessed object
      * @return mixed
      */

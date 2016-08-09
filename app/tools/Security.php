@@ -12,10 +12,11 @@ class Security
     const PERMISSION_READ = 1;
     const PERMISSION_WRITE = 2;
 
+    protected static $hashAccesses = [];
 
-    protected static $hashAccesses = array();
+    protected static $hashObjectsAccesses = [];
 
-    protected static $hashObjectsAccesses = array();
+    protected static $hashGroups = [];
 
     /**
      * Current user
@@ -31,6 +32,27 @@ class Security
     {
         self::$hashAccesses = $objUserEntity->getACL();
         self::$hashObjectsAccesses = $objUserEntity->getACO();
+        self::$hashGroups = $objUserEntity->getGroups();
+        self::$objUser = $objUserEntity;
+    }
+
+    /**
+     * Returns loaded user entity
+     * @return ISecurityEntity
+     */
+    public static function getUser()
+    {
+        return self::$objUser;
+    }
+
+    /**
+     * Indicates if the current entity belongs to the specified group
+     * @param string $strGroupName
+     * @return bool
+     */
+    public static function belongsToGroup($strGroupName)
+    {
+        return isset(self::$hashGroups[$strGroupName]);
     }
 
     /**
@@ -48,14 +70,15 @@ class Security
     /**
      * Indicates if an "accessor" object is authorized to access to an "accessed" object, with specified
      *
+     * @param ISecurityEntity $objAccessorObject
      * @param ISecurityEntity $objAccessedObject
      * @param integer $intLevel access level (read by default)
      * @return bool
      */
-    public static function hasObjectAccess(ISecurityEntity $objAccessedObject, $intLevel = self::PERMISSION_READ)
+    public static function hasObjectAccess(ISecurityEntity $objAccessorObject, ISecurityEntity $objAccessedObject, $intLevel = self::PERMISSION_READ)
     {
-        $strAccessorClassName = get_class(self::$objUser);
         $strAccessedClassName = get_class($objAccessedObject);
+        $strAccessorClassName = get_class($objAccessorObject);
 
         if (
             !array_key_exists($strAccessorClassName, self::$hashObjectsAccesses)
