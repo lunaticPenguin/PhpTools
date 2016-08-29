@@ -9,6 +9,26 @@ use App\Tools\Constraint;
 use App\Tools\CustomPDO\CustomPDO;
 use App\Tools\Validator;
 
+/**
+ * Class AbstractPDOModel.
+ * Factorize all basic methods for children models and provide them CRUD operations.
+ *
+ * Some events are dispatched through the model use:
+ *  - model_create_XXXX_YYYY
+ *  - model_update_by_id_XXXX_YYYY
+ *  - delete_row_by_ids_XXXX_YYYY
+ *
+ * with XXXX as database name and YYYY as the name of the table concerned by the query.
+ *
+ * If use of [create|update|delete|execute]Safely, some events are also dispatched on failure (plus the events listed below):
+ *
+ * - pdo_model_create_failure
+ * - pdo_model_update_failure
+ * - pdo_model_delete_failure
+ * - pdo_model_custom_query_failure
+ *
+ * @package App\Models
+ */
 abstract class AbstractPDOModel extends AbstractModel implements ITransactionalModel
 {
     protected static $hashInfos = array(
@@ -110,7 +130,14 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             $objStatement->bindValue(':' .  $strColumn, $mixedValue, $intType);
         }
 
-        return $objStatement->execute() ? (int) static::$objDb->lastInsertId() : 0;
+        $boolStatus = $objStatement->execute();
+        $intId = $boolStatus ? (int) static::$objDb->lastInsertId() : 0;
+
+        // event
+        $strHook = sprintf('pdo_model_create_%s_%s', static::$hashInfos['database'], static::$hashInfos['table']);
+        ObserverHandler::applyHook($strHook, ['data' => $hashValues, 'success' => $boolStatus, 'id' => $intId]);
+
+        return $intId;
     }
 
     /**
@@ -159,8 +186,15 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                 : \PDO::PARAM_STR;
             $objStatement->bindValue(':' .  $strColumn, $mixedValue, $intType);
         }
-        $objStatement->execute();
-        return $objStatement->rowCount();
+
+        $boolStatus = $objStatement->execute();
+        $intRowCount = $objStatement->rowCount();
+
+        // event
+        $strHook = sprintf('pdo_model_update_by_id_%s_%s', static::$hashInfos['database'], static::$hashInfos['table']);
+        ObserverHandler::applyHook($strHook, ['data' => $hashValues, 'success' => $boolStatus, 'count' => $intRowCount]);
+
+        return $intRowCount;
     }
 
     /**
@@ -190,8 +224,14 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
 
         $objStatement = static::$objDb->prepare($strSql);
 
-        $objStatement->execute();
-        return $objStatement->rowCount();
+        $boolStatus = $objStatement->execute();
+        $intRowCount = $objStatement->rowCount();
+
+        // event
+        $strHook = sprintf('pdo_model_delete_row_by_ids_%s_%s', static::$hashInfos['database'], static::$hashInfos['table']);
+        ObserverHandler::applyHook($strHook, ['data' => $arrayIds, 'success' => $boolStatus, 'count' => $intRowCount]);
+
+        return $intRowCount;
     }
 
     /**
@@ -309,7 +349,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
      *  'where|having' => array(
      *      'AFFECTED_COLUMN' => array(
      *          'type'      => OR|AND,
-     *          'clause'    => =|!=|<>|<|<=|>|>=|IN
+     *          'clause'    => '=', '!=', '<>', '<', '<=', '>', '>=', 'IN', 'LIKE', 'BETWEEN', 'IS', 'IS NOT', 'REGEXP'
      *          'value'     => SCALAR_VALUE|ARRAY(VALUE_#1, VALUE_#2, ...)
      *      ),
      *      ...
@@ -567,7 +607,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                     }
 
                     $strPartClause = isset($hashWhereOptions['clause'])
-                    && in_array(strtoupper($hashWhereOptions['clause']), array('=', '!=', '<>', '<', '<=', '>', '>=', 'IN', 'LIKE', 'BETWEEN', 'IS', 'IS NOT'))
+                    && in_array(strtoupper($hashWhereOptions['clause']), array('=', '!=', '<>', '<', '<=', '>', '>=', 'IN', 'LIKE', 'BETWEEN', 'IS', 'IS NOT', 'REGEXP'))
                         ? strtoupper($hashWhereOptions['clause']) : '=';
                     if (array_key_exists('function', $hashWhereOptions)) {
                         $strPartValue = $hashWhereOptions['function'];
@@ -723,7 +763,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             $intId = self::create($hashData);
         } catch (ModelException $e) {
             ObserverHandler::applyHook(
-                'model_create_failure',
+                'pdo_model_create_failure',
                 array(
                     'model'     => get_called_class(),
                     'data'      => $hashData,
@@ -733,7 +773,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             );
         } catch (\PDOException $e) {
             ObserverHandler::applyHook(
-                'model_create_failure',
+                'pdo_model_create_failure',
                 array(
                     'model'     => get_called_class(),
                     'data'      => $hashData,
@@ -759,7 +799,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             $intId = self::updateById($hashData, $arrayColumnList);
         } catch (ModelException $e) {
             ObserverHandler::applyHook(
-                'model_update_failure',
+                'pdo_model_update_failure',
                 array(
                     'model'     => get_called_class(),
                     'data'      => $hashData,
@@ -769,7 +809,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             );
         } catch (\PDOException $e) {
             ObserverHandler::applyHook(
-                'model_update_failure',
+                'pdo_model_update_failure',
                 array('model'   => get_called_class(),
                     'data'      => $hashData,
                     'exception' => $e,
@@ -793,7 +833,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             $intCountRows = self::deleteByListId($arrayInputIds);
         } catch (\PDOException $e) {
             ObserverHandler::applyHook(
-                'model_delete_failure',
+                'pdo_model_delete_failure',
                 array(
                     'model'     => get_called_class(),
                     'data'      => $arrayInputIds,
@@ -819,7 +859,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             $mixedResult = static::$strMethodName($mixedParams);
         } catch (\PDOException $e) {
             ObserverHandler::applyHook(
-                'model_custom_query_failure',
+                'pdo_model_custom_query_failure',
                 array(
                     'model'     => get_called_class(),
                     'method'    => $strMethodName,
@@ -830,7 +870,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             );
         } catch (ModelException $e) {
             ObserverHandler::applyHook(
-                'model_custom_query_failure',
+                'pdo_model_custom_query_failure',
                 array(
                     'model'     => get_called_class(),
                     'method'    => $strMethodName,
