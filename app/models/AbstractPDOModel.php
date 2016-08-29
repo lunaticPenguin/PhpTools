@@ -62,10 +62,11 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
      *
      * @param array $hashData
      * @param bool $boolIsUpdating
+     * @param array $hashOptions
      *
      * @return boolean
      */
-    protected static function validateData(array &$hashData, $boolIsUpdating)
+    protected static function validateData(array &$hashData, $boolIsUpdating, array $hashOptions = [])
     {
         $strCurrentDatetime = (new \DateTime())->format('Y-m-d H:i:s');
         $strCreatedAtFieldName = sprintf('%s_created_at', static::$hashInfos['alias']);
@@ -82,8 +83,10 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             if (isset($hashData[$strCreatedAtFieldName])) {
                 unset($hashData[$strCreatedAtFieldName]);
             }
-            if (array_key_exists($strUpdatedAtFieldName, static::$hashInfos['columns'])) {
-                $hashData[$strUpdatedAtFieldName] = $strCurrentDatetime;
+            if (!isset($hashOptions['no_update_updated_at']) || $hashOptions['no_update_updated_at'] !== true) {
+                if (array_key_exists($strUpdatedAtFieldName, static::$hashInfos['columns'])) {
+                    $hashData[$strUpdatedAtFieldName] = $strCurrentDatetime;
+                }
             }
         }
 

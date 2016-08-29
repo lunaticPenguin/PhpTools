@@ -23,10 +23,11 @@ abstract class AbstractModel implements IModel
      *
      * @param array $hashData
      * @param bool $boolIsUpdating
+     * @param array $hashOptions
      *
      * @return boolean
      */
-    protected static function validateData(array &$hashData, $boolIsUpdating)
+    protected static function validateData(array &$hashData, $boolIsUpdating, array $hashOptions = [])
     {
         return false;
     }
