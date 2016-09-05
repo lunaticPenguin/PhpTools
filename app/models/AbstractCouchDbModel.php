@@ -32,14 +32,15 @@ abstract class AbstractCouchDbModel extends AbstractNoSqlModel
     /**
      * Allows to indicate which column needs to have specific type with several options
      * before any insert or update query attempts.
-     * This method MUST be overridden or called to keep coherent models.
+     * This method MUST BE overridden.
      *
      * @param array $hashData
      * @param bool $boolIsUpdating
+     * @param array $hashOptions
      *
      * @return boolean
      */
-    protected static function validateData(array &$hashData, $boolIsUpdating)
+    protected static function validateData(array &$hashData, $boolIsUpdating, array $hashOptions = [])
     {
         $strCurrentDatetime = (new \DateTime())->format('Y-m-d H:i:s');
 
@@ -118,7 +119,7 @@ abstract class AbstractCouchDbModel extends AbstractNoSqlModel
                             self::checkFields($hashFieldInfos['data'], $hashSubData);
                             break;
                         default: // all others datatypes
-                             self::checkFields($hashFieldInfos['data'], $hashSubData);
+                            self::checkFields($hashFieldInfos['data'], $hashSubData);
                             break;
                     }
                     break;
@@ -250,7 +251,7 @@ abstract class AbstractCouchDbModel extends AbstractNoSqlModel
     /**
      * @inheritDoc
      */
-    public static function updateById(array $hashData, array $arrayColumnList = array())
+    public static function updateById(array $hashData, array $arrayColumnList = [], array $hashOptions = [])
     {
         if (!isset($hashData['_id'])) {
             throw new ModelException(
@@ -273,7 +274,7 @@ abstract class AbstractCouchDbModel extends AbstractNoSqlModel
 //        $hashData = self::completeMissingFields(self::getModelInformation('fields'), $hashData);
 
         Validator::reset();
-        if (!static::validateData($hashData, false)) {
+        if (!static::validateData($hashData, false, $hashOptions)) {
             throw new ModelException(
                 sprintf(
                     '%s::updateById() - Invalid input data (%s)',

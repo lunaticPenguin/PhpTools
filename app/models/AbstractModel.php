@@ -34,15 +34,17 @@ abstract class AbstractModel implements IModel
 
     /**
      * Returns information about the current model
-     * @param string $strInformation database|alias|primary_key|columns|available_columns
-     * @return mixed
+     * @param string $strInformation database|alias|primary_key|columns|available_columns|table
+     * @return mixed|null
      */
     public static function getModelInformation($strInformation = 'table')
     {
+        if (!in_array($strInformation, ['database', 'alias', 'primary_key', 'columns', 'available_columns', 'table'])) {
+            return null;
+        }
         if ($strInformation === 'available_columns') {
             $hashColumns = array();
             foreach (static::$hashInfos['columns'] as $strColumn => $hashColumnsInfos) {
-                $hashColumns[$strColumn] = $hashColumnsInfos;
                 $hashColumns[static::$hashInfos['alias'] . '.' . $strColumn] = $hashColumnsInfos;
             }
             return $hashColumns;

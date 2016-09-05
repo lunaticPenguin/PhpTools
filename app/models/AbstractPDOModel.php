@@ -7,6 +7,7 @@ use App\Exceptions\ModelQueryException;
 use App\Observers\ObserverHandler;
 use App\Tools\Constraint;
 use App\Tools\CustomPDO\CustomPDO;
+use App\Tools\Log;
 use App\Tools\Validator;
 
 /**
@@ -83,7 +84,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             if (isset($hashData[$strCreatedAtFieldName])) {
                 unset($hashData[$strCreatedAtFieldName]);
             }
-            if (!isset($hashOptions['no_update_updated_at']) || $hashOptions['no_update_updated_at'] !== true) {
+            if (!isset($hashOptions['ignore_updated_at']) || $hashOptions['ignore_updated_at'] !== true) {
                 if (array_key_exists($strUpdatedAtFieldName, static::$hashInfos['columns'])) {
                     $hashData[$strUpdatedAtFieldName] = $strCurrentDatetime;
                 }
@@ -147,13 +148,14 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
      * Allows to update a row whose an identifier is provided
      * @param array $hashData
      * @param array $arrayColumnList columns' list (optional)
+     * @param array $hashOptions
      * @return integer number of affected rows
      * @throws ModelException|\PDOException
      */
-    public static function updateById(array $hashData, array $arrayColumnList = array())
+    public static function updateById(array $hashData, array $arrayColumnList = [], array $hashOptions = [])
     {
         Validator::reset();
-        if (!static::validateData($hashData, true)) {
+        if (!static::validateData($hashData, true, $hashOptions)) {
             throw new ModelException(sprintf('UPDATE - Invalid input data for %s', get_called_class()));
         }
 
@@ -384,10 +386,13 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
     public static function getGenericList(array $arrayColumns, array $hashOptions = array())
     {
         $arrayJoins = array();
-        $strColumns = implode(',', $arrayColumns);
+        if (($intKey = array_search('entity_actions', $arrayColumns)) !== false) { // temp fix
+            unset($arrayColumns[$intKey]);
+        }
 
         // all available columns' names are prefixed by table alias to avoid ambigous clause
         $hashAvailableColumns = static::getModelInformation('available_columns');
+        $arrayAvailableAliases = [static::getModelInformation('alias')];
         $arrayTmpMatches = array();
         foreach ($arrayColumns as $strColumn) {
             // storing all computed columns into available columns list
@@ -401,6 +406,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
 
         /**
          * @var AbstractModel $strModelToJoin
+         * @var AbstractModel $strPreviousModelToJoin
          */
 
         if (isset($hashOptions['join']) && is_array($hashOptions['join']) && !empty($hashOptions['join'])) {
@@ -408,17 +414,19 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
 
             foreach ($hashOptions['join'] as $strJoinType => $arrayModelToJoin) {
                 if (in_array(strtolower($strJoinType), array('left', 'right', 'inner', 'outer')) && is_array($arrayModelToJoin)) {
+                    $strPreviousModelToJoin = get_called_class();
                     foreach ($arrayModelToJoin as $key => $strModelToJoin) {
+
                         $conditionSup = '';
 
-                        // check si il ya une condition suplementaire lors du on ....
+                        // add secondary condition on join
                         if (is_array($strModelToJoin)) {
                             $conditionSup = (isset($strModelToJoin['condition']) ? $strModelToJoin['condition'] : '');
                             $strModelToJoin = (isset($strModelToJoin['model']) ? $strModelToJoin['model'] : 'error_no_model');
                         }
 
                         if (class_exists($strModelToJoin)) {
-                            // Au cas ou l'on precise la colonne sur laquelle faire la jointure
+                            // automatically joined colon (forced using key on model)
                             $column = $strModelToJoin::getModelInformation('primary_key');
                             if (!is_numeric($key)) {
                                 $tmp = explode('.', $key);
@@ -432,7 +440,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                                 $strModelToJoin::getModelInformation('database'),
                                 $strModelToJoin::getModelInformation('table'),
                                 $strModelToJoin::getModelInformation('alias'),
-                                static::getModelInformation('alias')
+                                $strPreviousModelToJoin::getModelInformation('alias')
                                 . '.' . $column,
                                 $strModelToJoin::getModelInformation('alias')
                                 . '.' . $column,
@@ -442,12 +450,15 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
 
                             // collect all available columns
                             $strAlias = $strModelToJoin::getModelInformation('alias');
+                            $arrayAvailableAliases[] = $strAlias;
                             foreach ($strModelToJoin::getModelInformation('columns') as $strColumn => $intType) {
                                 $hashAvailableColumns[sprintf('%s.%s', $strAlias, $strColumn)] = $intType;
                             }
                         } else {
                             throw new ModelException(sprintf('ModelConstraint - [%s JOIN] Non-existent model provided (%s)', strtoupper($strJoinType), $strModelToJoin));
                         }
+
+                        $strPreviousModelToJoin = $strModelToJoin;
                     }
                 }
             }
@@ -457,10 +468,10 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
         $strJoin = implode(' ', $arrayJoins);
 
 
-        $hashWhereInfos = self::computeWhereAndHavingClause($hashOptions, 'where', $hashAvailableColumns);
-        $hashWhereGroupInfos = self::computeWhereAndHavingClause($hashOptions, 'where_group', $hashAvailableColumns);
-        $hashHavingInfos = self::computeWhereAndHavingClause($hashOptions, 'having', $hashAvailableColumns);
-        $hashHavingGroupInfos = self::computeWhereAndHavingClause($hashOptions, 'having_group', $hashAvailableColumns);
+        $hashWhereInfos = self::computeWhereAndHavingClause($hashOptions, 'where', $hashAvailableColumns, $arrayAvailableAliases);
+        $hashWhereGroupInfos = self::computeWhereAndHavingClause($hashOptions, 'where_group', $hashAvailableColumns, $arrayAvailableAliases);
+        $hashHavingInfos = self::computeWhereAndHavingClause($hashOptions, 'having', $hashAvailableColumns, $arrayAvailableAliases);
+        $hashHavingGroupInfos = self::computeWhereAndHavingClause($hashOptions, 'having_group', $hashAvailableColumns, $arrayAvailableAliases);
 
 
         $strGroup = '';
@@ -505,6 +516,14 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
         $strTmpHaving = isset($hashOptions['having_group'])
             ? $hashHavingGroupInfos['sql']
             : (isset($hashOptions['having']) ? $hashHavingInfos['sql'] : '');
+
+        $arrayFetchedColumns = [];
+        foreach ($arrayColumns as $strColumn) {
+            if (strpos($strColumn, '.') === false) { // if not specified columns
+                $arrayFetchedColumns[] = self::findRealColumnName($strColumn, $arrayAvailableAliases);
+            }
+        }
+        $strColumns = implode(',', $arrayFetchedColumns);
 
         $strSql = sprintf(
             "SELECT SQL_CALC_FOUND_ROWS %s FROM %s.%s %s %s%s%s%s%s%s",
@@ -559,12 +578,13 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
      * @param array $hashOptions
      * @param string $strType
      * @param array $hashAvailableColumns
+     * @param array $arrayAvailableAliases
      * @param integer $intLevel
      * @return array
      *
      * @throws ModelQueryException
      */
-    private static function computeWhereAndHavingClause(array &$hashOptions, $strType, array &$hashAvailableColumns, $intLevel = 0)
+    private static function computeWhereAndHavingClause(array &$hashOptions, $strType, array &$hashAvailableColumns, $arrayAvailableAliases, $intLevel = 0)
     {
         if (!in_array($strType, array('where', 'having', 'where_group', 'having_group'))) {
             return '';
@@ -583,7 +603,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                     }
 
                     $hashConditionsToCompute = array($strType => $hashConditions['conditions']);
-                    $hashConditionPart = self::computeWhereAndHavingClause($hashConditionsToCompute, $strSubKey, $hashAvailableColumns, $intLevel + 1);
+                    $hashConditionPart = self::computeWhereAndHavingClause($hashConditionsToCompute, $strSubKey, $hashAvailableColumns, $arrayAvailableAliases, $intLevel + 1);
 
                     $strPartType = '';
                     if ($intConditionIndex > 0) { // if not empty then we need to force the use of a logical operator
@@ -597,6 +617,8 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             } else {
                 $arrayWheres = array();
                 foreach ($hashOptions[$strType] as $strColumn => $hashWhereOptions) {
+
+                    $strColumn = self::findRealColumnName($strColumn, $arrayAvailableAliases);
 
                     if (!isset($hashAvailableColumns[$strColumn])) { // if the requested column belongs to available columns
                         continue;
@@ -711,6 +733,20 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                 return \PDO::PARAM_STR;
                 break;
         }
+    }
+
+    /**
+     * Find real column name (e.g. alias.column) if the column name contains prefix
+     * @param string $strColumnName
+     * @param array $arrayAvailableAliases authorized aliases
+     * @return string
+     */
+    private static function findRealColumnName($strColumnName, $arrayAvailableAliases)
+    {
+        if (preg_match('/^([a-z]{3,5})_/', $strColumnName, $arrayTemp) === 1 && in_array($arrayTemp[1], $arrayAvailableAliases)) { // only native columns
+            return sprintf('%s.%s', $arrayTemp[1], $strColumnName);
+        }
+        return $strColumnName;
     }
 
     /**
