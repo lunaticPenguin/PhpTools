@@ -257,11 +257,11 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
      * @param array $arrayColumns
      * @return array
      */
-    private static function computeFetchedColumns(array $arrayColumns)
+    protected static function computeFetchedColumns(array $arrayColumns = array())
     {
-        $arrayFetchedColumns = array_keys(static::$hashInfos['columns']);
+        $arrayFetchedColumns = array_keys(static::getModelInformation('available_columns'));
         if (!empty($arrayColumns)) {
-            $arrayFetchedColumns = array_intersect(array_keys(static::$hashInfos['columns']), $arrayColumns);
+            $arrayFetchedColumns = array_intersect(array_keys(static::getModelInformation('available_columns')), $arrayColumns);
         }
         return $arrayFetchedColumns;
     }
