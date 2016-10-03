@@ -80,7 +80,7 @@ class FormHelper
             return in_array($strValue, static::$hashData[$strVariableName]);
         }
 
-        return static::$hashData[$strVariableName] === $strValue;
+        return static::$hashData[$strVariableName] == $strValue;
     }
 
     /**

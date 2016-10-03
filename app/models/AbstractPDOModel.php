@@ -283,10 +283,11 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
         $arrayFetchedColumns = self::computeFetchedColumns($arrayColumns);
 
         $strSql = sprintf(
-            "SELECT %s FROM %s.%s WHERE %s=:%s_id LIMIT 1",
+            "SELECT %s FROM %s.%s %s WHERE %s=:%s_id LIMIT 1",
             implode(',', $arrayFetchedColumns),
             static::$hashInfos['database'],
             static::$hashInfos['table'],
+            static::$hashInfos['alias'],
             static::$hashInfos['primary_key'],
             static::$hashInfos['alias']
         );
@@ -324,10 +325,11 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
         $arrayFetchedColumns = self::computeFetchedColumns($arrayColumns);
 
         $strSql = sprintf(
-            "SELECT %s FROM %s.%s WHERE %s IN (%s) ORDER BY %s ASC",
+            "SELECT %s FROM %s.%s %s WHERE %s IN (%s) ORDER BY %s ASC",
             implode(',', $arrayFetchedColumns),
             static::$hashInfos['database'],
             static::$hashInfos['table'],
+            static::$hashInfos['alias'],
             static::$hashInfos['primary_key'],
             implode(',', $arrayInParts),
             static::$hashInfos['primary_key']
@@ -556,6 +558,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
         }
 
         $objStatement->execute();
+        Log::log(self::$objDb->getLastQuery());
 
         $hashResults = array(
             'results'   => $objStatement->fetchAll(\PDO::FETCH_ASSOC),

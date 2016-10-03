@@ -49,4 +49,25 @@ class Tools
         }
         return $arrayNewCollection;
     }
+
+    /**
+     * Get all current parameters whose the name begins by the specified prefix
+     *
+     * @param string $strPrefixParam prefix of the searched parameters
+     * @param array $hashData data set to search through.
+     *
+     * @return array
+     */
+    public static function getAllParamsStartWith($strPrefixParam, array $hashData) {
+
+        $arrayResult = array();
+        $intPrefixLength = mb_strlen($strPrefixParam);
+
+        foreach ($hashData as $strKey => $strValue) {
+            if (mb_strpos($strKey, $strPrefixParam) !== false) {
+                $arrayResult[] = substr($strKey, $intPrefixLength);
+            }
+        }
+        return $arrayResult;
+    }
 }
