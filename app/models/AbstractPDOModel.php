@@ -6,8 +6,6 @@ use App\Exceptions\ModelException;
 use App\Exceptions\ModelQueryException;
 use App\Observers\ObserverHandler;
 use App\Tools\Constraint;
-use App\Tools\CustomPDO\CustomPDO;
-use App\Tools\Log;
 use App\Tools\Validator;
 
 /**
@@ -43,13 +41,13 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
     /**
      * PDO instance.
      * (A better way is to use the DI pattern, but here the library can be used in many projects)
-     * @var CustomPDO instance
+     * @var \PDO instance
      */
     protected static $objDb;
 
     /**
      * Inject PDO instance to the current model
-     * @param CustomPDO $objDb (ideally, should be CustomPDO instance, but can be PDO instance too)
+     * @param \PDO $objDb
      */
     public static function setPdoInstance($objDb)
     {
@@ -296,7 +294,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
         $objStatement->bindValue(':' . static::$hashInfos['primary_key'], $intId, \PDO::PARAM_INT);
         $objStatement->execute();
 
-        return $objStatement->rowCount() > 0 ? $objStatement->fetch(\PDO::FETCH_ASSOC) : array();
+        return self::singleResult($objStatement);
     }
 
     /**
@@ -558,10 +556,9 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
         }
 
         $objStatement->execute();
-        Log::log(self::$objDb->getLastQuery());
 
         $hashResults = array(
-            'results'   => $objStatement->fetchAll(\PDO::FETCH_ASSOC),
+            'results'   => self::multipleResult($objStatement),
             'count'     => $objStatement->rowCount()
         );
 
@@ -570,7 +567,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
         $objStatement = self::$objDb->prepare($strCountSql);
         $objStatement->execute();
 
-        $data = $objStatement->fetch(\PDO::FETCH_ASSOC);
+        $data = self::singleResult($objStatement);
         $hashResults['total'] = (isset($data['nb'])) ? $data['nb'] : 0;
 
         return $hashResults;
@@ -809,8 +806,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                 array(
                     'model'     => get_called_class(),
                     'data'      => $hashData,
-                    'exception' => $e,
-                    'query'     => self::$objDb->getLastQuery()
+                    'exception' => $e
                 )
             );
         } catch (\PDOException $e) {
@@ -819,8 +815,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                 array(
                     'model'     => get_called_class(),
                     'data'      => $hashData,
-                    'exception' => $e,
-                    'query'     => self::$objDb->getLastQuery()
+                    'exception' => $e
                 )
             );
         }
@@ -845,8 +840,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                 array(
                     'model'     => get_called_class(),
                     'data'      => $hashData,
-                    'exception' => $e,
-                    'query'     => self::$objDb->getLastQuery()
+                    'exception' => $e
                 )
             );
         } catch (\PDOException $e) {
@@ -854,8 +848,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                 'pdo_model_update_failure',
                 array('model'   => get_called_class(),
                     'data'      => $hashData,
-                    'exception' => $e,
-                    'query'     => self::$objDb->getLastQuery()
+                    'exception' => $e
                 )
             );
         }
@@ -879,8 +872,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                 array(
                     'model'     => get_called_class(),
                     'data'      => $arrayInputIds,
-                    'exception' => $e,
-                    'query'     => self::$objDb->getLastQuery()
+                    'exception' => $e
                 )
             );
         }
@@ -906,8 +898,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                     'model'     => get_called_class(),
                     'method'    => $strMethodName,
                     'data'      => $mixedParams,
-                    'exception' => $e,
-                    'query'     => self::$objDb->getLastQuery()
+                    'exception' => $e
                 )
             );
         } catch (ModelException $e) {
@@ -917,11 +908,39 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                     'model'     => get_called_class(),
                     'method'    => $strMethodName,
                     'data'      => $mixedParams,
-                    'exception' => $e,
-                    'query'     => self::$objDb->getLastQuery()
+                    'exception' => $e
                 )
             );
         }
         return $mixedResult;
+    }
+
+    /**
+     * Fetch single result or empty array (if no results)
+     *
+     * @param \PDOStatement $objStatement
+     * @param int $intFetchType
+     * @return array
+     */
+    protected static function singleResult(\PDOStatement $objStatement, $intFetchType = \PDO::FETCH_ASSOC)
+    {
+        if ($objStatement->rowCount() > 0) {
+            return $objStatement->fetch($intFetchType);
+        }
+        return [];
+    }
+
+    /**
+     * Fetch multiple results or empty array (if no results)
+     * @param \PDOStatement $objStatement
+     * @param int $intFetchType
+     * @return array
+     */
+    public static function multipleResult(\PDOStatement $objStatement, $intFetchType = \PDO::FETCH_ASSOC)
+    {
+        if ($objStatement->rowCount() > 0) {
+            return $objStatement->fetchAll($intFetchType);
+        }
+        return [];
     }
 }
