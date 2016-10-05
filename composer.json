@@ -1,6 +1,7 @@
 {
     "require": {
         "robmorgan/phinx": "*",
-        "atoum/atoum" : "dev-master"
+        "atoum/atoum" : "dev-master",
+        "maximebf/debugbar": "1.*"
     }
 }
