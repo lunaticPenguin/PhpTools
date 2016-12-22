@@ -56,12 +56,17 @@ class DebugbarObserver extends AbstractObserver
     public function add_data_after_runtime(array $hashViewVariables, array $hashOptions)
     {
         $hashViewVariables['is_debugging'] = true;
-        if (isset($_SESSION['user'])) {
-            $this->addContent('user', $_SESSION['user'], 'info', false);
+        if (isset($_SESSION['user']) || isset($_SESSION['staff'])) {
+            if (isset($_SESSION['user'])) {
+                $this->addContent('user', $_SESSION['user'], 'info', false);
+            }
+            if (isset($_SESSION['staff'])) {
+                $this->addContent('user', $_SESSION['staff'], 'info', false);
+            }
         } else {
             $this->addContent('user', 'No user logged in.', 'info');
         }
-        
+
         $objDebugBarRender = $this->objDebugbar->getJavascriptRenderer();
         ob_start();
         $objDebugBarRender->dumpCssAssets();

@@ -8,6 +8,18 @@ final class Config
 
     public static $hashConfig = array();
 
+    protected static $hashOptions = [];
+
+    /**
+     * Allow to set option to the config class
+     * @param $strOptionName
+     * @param $mixedOptionValue
+     */
+    public static function setOption($strOptionName, $mixedOptionValue)
+    {
+        self::$hashOptions[$strOptionName] = $mixedOptionValue;
+    }
+
     /**
      * Retrieve the configuration key
      * Nested key supported
@@ -23,7 +35,11 @@ final class Config
         $arrayPath = explode('.', $strKey);
 
         if (empty(self::$hashConfig)) {
-            self::$hashConfig = include_once self::PATH_TO_CONFIG . '/conf.php';
+            if (isset(self::$hashOptions['path_to_config']) && !empty(self::$hashOptions['path_to_config'])) {
+                self::$hashConfig = include_once self::$hashOptions['path_to_config'] . '/conf.php';
+            } else {
+                self::$hashConfig = include_once self::PATH_TO_CONFIG . '/conf.php';
+            }
         }
 
         return self::getNestedPart(self::$hashConfig, $arrayPath, $mixedDefault);

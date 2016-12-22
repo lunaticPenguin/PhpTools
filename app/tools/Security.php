@@ -19,30 +19,30 @@ class Security
     protected static $hashGroups = [];
 
     /**
-     * Current user
-     * @var ISecurityEntity
+     * Current users sessions
+     * @var ISecurityEntity[]
      */
-    protected static $objUser = null;
+    protected static $arrayUsers = [];
 
     /**
      * Loads standards accesses (areas)
      * @param ISecurityEntity $objUserEntity
      */
-    public static function loadUser(ISecurityEntity $objUserEntity)
+    public static function loadUser(ISecurityEntity $objUserEntity, $strType = 'user')
     {
         self::$hashAccesses = $objUserEntity->getACL();
         self::$hashObjectsAccesses = $objUserEntity->getACO();
         self::$hashGroups = $objUserEntity->getGroups();
-        self::$objUser = $objUserEntity;
+        self::$arrayUsers[$strType] = $objUserEntity;
     }
 
     /**
      * Returns loaded user entity
      * @return ISecurityEntity
      */
-    public static function getUser()
+    public static function getUser($strType = 'user')
     {
-        return self::$objUser;
+        return isset(self::$arrayUsers[$strType]) ? self::$arrayUsers[$strType] : null;
     }
 
     /**
@@ -103,9 +103,9 @@ class Security
      * Technically, this method must only be used when the Security class owns the current user
      * @return bool
      */
-    public static function isLoggedIn()
+    public static function isLoggedIn($strType = 'user')
     {
-        return self::$objUser instanceof ISecurityEntity;
+        return self::getUser($strType) instanceof ISecurityEntity;
     }
 
     /**
