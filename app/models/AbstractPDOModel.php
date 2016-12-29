@@ -408,21 +408,28 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
          * @var AbstractModel $strModelToJoin
          * @var AbstractModel $strPreviousModelToJoin
          */
-
         if (isset($hashOptions['join']) && is_array($hashOptions['join']) && !empty($hashOptions['join'])) {
-            $arrayJoins = array();
 
+            $arrayJoins = array();
+            $strPreviousModelToJoin = get_called_class();
             foreach ($hashOptions['join'] as $strJoinType => $arrayModelToJoin) {
-                if (in_array(strtolower($strJoinType), array('left', 'right', 'inner', 'outer')) && is_array($arrayModelToJoin)) {
-                    $strPreviousModelToJoin = get_called_class();
+                if (in_array(strtolower($strJoinType), array('left', 'right', 'inner', 'outer'))) {
+
+                    if (!is_array($arrayModelToJoin)) {
+                        continue;
+                    }
+
                     foreach ($arrayModelToJoin as $key => $strModelToJoin) {
 
                         $conditionSup = '';
+                        $strForcedAlias = '';
 
                         // add secondary condition on join
                         if (is_array($strModelToJoin)) {
-                            $conditionSup = (isset($strModelToJoin['condition']) ? $strModelToJoin['condition'] : '');
-                            $strModelToJoin = (isset($strModelToJoin['model']) ? $strModelToJoin['model'] : 'error_no_model');
+
+                            $conditionSup = isset($strModelToJoin['condition']) ? $strModelToJoin['condition'] : '';
+                            $strForcedAlias = (isset($strModelToJoin['alias'])) ? $strModelToJoin['alias'] : 'nope';
+                            $strModelToJoin = isset($strModelToJoin['model']) ? $strModelToJoin['model'] : 'error_no_model';
                         }
 
                         if (class_exists($strModelToJoin)) {
@@ -440,7 +447,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                                 $strModelToJoin::getModelInformation('database'),
                                 $strModelToJoin::getModelInformation('table'),
                                 $strModelToJoin::getModelInformation('alias'),
-                                $strPreviousModelToJoin::getModelInformation('alias')
+                                ($strForcedAlias !== '' ? $strForcedAlias : $strPreviousModelToJoin::getModelInformation('alias'))
                                 . '.' . $column,
                                 $strModelToJoin::getModelInformation('alias')
                                 . '.' . $column,
@@ -462,7 +469,6 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                     }
                 }
             }
-
         }
 
         $strJoin = implode(' ', $arrayJoins);
