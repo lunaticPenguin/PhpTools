@@ -15,7 +15,7 @@ class DebugbarObserver extends AbstractObserver
      */
     protected $objDebugbar = null;
 
-    protected static $arrayRegisteredCollectors = ['user', 'view'];
+    protected static $arrayRegisteredCollectors = ['user', 'view', 'observers'];
 
     public function __construct()
     {
