@@ -428,7 +428,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
                         if (is_array($strModelToJoin)) {
 
                             $conditionSup = isset($strModelToJoin['condition']) ? $strModelToJoin['condition'] : '';
-                            $strForcedAlias = (isset($strModelToJoin['alias'])) ? $strModelToJoin['alias'] : 'nope';
+                            $strForcedAlias = (isset($strModelToJoin['alias'])) ? $strModelToJoin['alias'] : '';
                             $strModelToJoin = isset($strModelToJoin['model']) ? $strModelToJoin['model'] : 'error_no_model';
                         }
 

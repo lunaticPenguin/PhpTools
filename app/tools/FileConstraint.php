@@ -173,4 +173,24 @@ class FileConstraint
 
         return move_uploaded_file($strOriginPath, $strDestinationPath);
     }
+
+    /**
+     * Save base64 data as file
+     * @param string $strInput base64 string
+     * @param string $strDestinationPath
+     * @return bool
+     */
+    public static function uploadBase64File($strInput, $strDestinationPath)
+    {
+        if (($resInputFile = fopen($strDestinationPath, "wb")) === false) {
+            return false;
+        }
+        $boolStatus = true;
+        $hashData = explode(',', $strInput);
+        if (fwrite($resInputFile, base64_decode($hashData[1])) === false) {
+            $boolStatus = false;
+        }
+        fclose($resInputFile);
+        return $boolStatus;
+    }
 }

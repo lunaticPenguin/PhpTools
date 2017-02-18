@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Tools\Tools;
 use DebugBar\DataCollector\MessagesCollector;
 use DebugBar\DataCollector\PDO\PDOCollector;
 use DebugBar\DataCollector\PDO\TraceablePDO;
@@ -14,12 +15,14 @@ class DebugbarObserver extends AbstractObserver
      */
     protected $objDebugbar = null;
 
-    protected static $arrayRegisteredCollectors = ['user'];
+    protected static $arrayRegisteredCollectors = ['user', 'view'];
 
     public function __construct()
     {
         $this->objDebugbar = new StandardDebugBar();
         $this->objDebugbar->addCollector(new MessagesCollector('user'));
+        $this->objDebugbar->addCollector(new MessagesCollector('view'));
+        $this->objDebugbar->addCollector(new MessagesCollector('observers'));
     }
 
     /**
@@ -55,6 +58,10 @@ class DebugbarObserver extends AbstractObserver
      */
     public function add_data_after_runtime(array $hashViewVariables, array $hashOptions)
     {
+        $hashFilteredView = Tools::filterFromArray($hashViewVariables, ['router', 'user'], false);
+        $this->addContent('view', $hashFilteredView, 'info', false);
+        $this->addContent('observers', ObserverHandler::debug(), 'info', false);
+
         $hashViewVariables['is_debugging'] = true;
         if (isset($_SESSION['user']) || isset($_SESSION['staff'])) {
             if (isset($_SESSION['user'])) {
