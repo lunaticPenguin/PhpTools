@@ -492,29 +492,8 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             $strGroup = ' GROUP BY ' . implode(',', $arrayGroups);
         }
 
-        $strOrder = '';
-        if (isset($hashOptions['order']) && is_array($hashOptions['order'])) {
-            $arrayOrders = array();
-            foreach ($hashOptions['order'] as $strColumn => $strOrderType) {
-                if (is_string($strColumn) && in_array(strtoupper($strOrderType), array('ASC', 'DESC'))) {
-                    $arrayOrders[] = sprintf('%s %s', $strColumn, strtoupper($strOrderType));
-                    $strOrder = ' ORDER BY ' . implode(',', $arrayOrders);
-                }
-            }
-        }
-
-        $strLimit = '';
-        if (isset($hashOptions['limit']) && is_array($hashOptions['limit'])) {
-            $intSize = isset($hashOptions['limit']['size']) ? (int)$hashOptions['limit']['size'] : 0;
-            $intStart = isset($hashOptions['limit']['start']) && $intSize !== 0 ? (int)$hashOptions['limit']['start'] : 0;
-
-            if ($intSize !== 0) {
-                $strLimit = sprintf(' LIMIT %d', $intSize);
-            }
-            if ($intSize !== 0 && $intStart !== 0) {
-                $strLimit = sprintf(' LIMIT %d, %d', $intStart, $intSize);
-            }
-        }
+        $strOrder = self::computeOrderInfos($hashOptions);
+        $strLimit = self::computeLimitInfos($hashOptions);
 
         $strTmpWhere = isset($hashOptions['where_group'])
             ? $hashWhereGroupInfos['sql']
@@ -590,7 +569,7 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
      *
      * @throws ModelQueryException
      */
-    private static function computeWhereAndHavingClause(array &$hashOptions, $strType, array &$hashAvailableColumns, $arrayAvailableAliases, $intLevel = 0)
+    protected static function computeWhereAndHavingClause(array &$hashOptions, $strType, array &$hashAvailableColumns, $arrayAvailableAliases, $intLevel = 0)
     {
         if (!in_array($strType, array('where', 'having', 'where_group', 'having_group'))) {
             return '';
@@ -717,6 +696,48 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
             'sql' => $strPart,
             'bind' => $hashValuesToBind
         );
+    }
+
+    /**
+     * Compute ORDER informations
+     * @param array $hashOptions
+     * @return string
+     */
+    protected static function computeOrderInfos(array $hashOptions = [])
+    {
+        $strOrder = '';
+        if (isset($hashOptions['order']) && is_array($hashOptions['order'])) {
+            $arrayOrders = [];
+            foreach ($hashOptions['order'] as $strColumn => $strOrderType) {
+                if (is_string($strColumn) && in_array(strtoupper($strOrderType), array('ASC', 'DESC'))) {
+                    $arrayOrders[] = sprintf('%s %s', $strColumn, strtoupper($strOrderType));
+                    $strOrder = ' ORDER BY ' . implode(',', $arrayOrders);
+                }
+            }
+        }
+        return $strOrder;
+    }
+
+    /**
+     * Compute LIMIT informations
+     * @param array $hashOptions
+     * @return string
+     */
+    protected  static function computeLimitInfos(array $hashOptions = [])
+    {
+        $strLimit = '';
+        if (isset($hashOptions['limit']) && is_array($hashOptions['limit'])) {
+            $intSize = isset($hashOptions['limit']['size']) ? (int)$hashOptions['limit']['size'] : 0;
+            $intStart = isset($hashOptions['limit']['start']) && $intSize !== 0 ? (int)$hashOptions['limit']['start'] : 0;
+
+            if ($intSize !== 0) {
+                $strLimit = sprintf(' LIMIT %d', $intSize);
+            }
+            if ($intSize !== 0 && $intStart !== 0) {
+                $strLimit = sprintf(' LIMIT %d, %d', $intStart, $intSize);
+            }
+        }
+        return $strLimit;
     }
 
     /**
