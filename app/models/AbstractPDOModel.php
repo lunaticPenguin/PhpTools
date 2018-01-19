@@ -55,6 +55,14 @@ abstract class AbstractPDOModel extends AbstractModel implements ITransactionalM
     }
 
     /**
+     * Terminates connection with the DB
+     */
+    public static function closeConnection()
+    {
+        static::$objDb = null;
+    }
+
+    /**
      * Allows to indicate which column needs to have specific type with several options
      * before any insert or update query attempts.
      * This method MUST be overridden or called to keep coherent models.
