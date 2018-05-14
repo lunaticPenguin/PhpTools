@@ -30,9 +30,9 @@ class Security
      */
     public static function loadUser(ISecurityEntity $objUserEntity, $strType = 'user')
     {
-        self::$hashAccesses = $objUserEntity->getACL();
-        self::$hashObjectsAccesses = $objUserEntity->getACO();
-        self::$hashGroups = $objUserEntity->getGroups();
+        self::$hashAccesses[$strType] = $objUserEntity->getACL();
+        self::$hashObjectsAccesses[$strType] = $objUserEntity->getACO();
+        self::$hashGroups[$strType] = $objUserEntity->getGroups();
         self::$arrayUsers[$strType] = $objUserEntity;
     }
 
@@ -50,9 +50,9 @@ class Security
      * @param string $strGroupName
      * @return bool
      */
-    public static function belongsToGroup($strGroupName)
+    public static function belongsToGroup($strGroupName, $strType = 'user')
     {
-        return isset(self::$hashGroups[$strGroupName]);
+        return isset(self::$hashGroups[$strType]) && isset(self::$hashGroups[$strType][$strGroupName]);
     }
 
     /**
@@ -62,9 +62,10 @@ class Security
      * @param string $strActionName
      * @return bool
      */
-    public static function hasAccess($strZoneAction, $strActionName)
+    public static function hasAccess($strZoneAction, $strActionName, $strType = 'user')
     {
-        return isset(self::$hashAccesses[$strZoneAction . '-' . $strActionName]);
+        return isset(self::$hashAccesses[$strType])
+        && isset(self::$hashAccesses[$strType][$strZoneAction . '-' . $strActionName]);
     }
 
     /**
@@ -75,27 +76,31 @@ class Security
      * @param integer $intLevel access level (read by default)
      * @return bool
      */
-    public static function hasObjectAccess(ISecurityEntity $objAccessorObject, ISecurityEntity $objAccessedObject, $intLevel = self::PERMISSION_READ)
+    public static function hasObjectAccess(ISecurityEntity $objAccessorObject, ISecurityEntity $objAccessedObject, $intLevel = self::PERMISSION_READ, $strType = 'user')
     {
         $strAccessedClassName = get_class($objAccessedObject);
         $strAccessorClassName = get_class($objAccessorObject);
 
+        if (!isset(self::$hashObjectsAccesses[$strType])) {
+            return false;
+        }
+
         if (
-            !array_key_exists($strAccessorClassName, self::$hashObjectsAccesses)
-            || !array_key_exists($strAccessedClassName, self::$hashObjectsAccesses[$strAccessorClassName])
+            !array_key_exists($strAccessorClassName, self::$hashObjectsAccesses[$strType])
+            || !array_key_exists($strAccessedClassName, self::$hashObjectsAccesses[$strType][$strAccessorClassName])
         ) {
             return false;
         }
 
-        if (!is_array(self::$hashObjectsAccesses[$strAccessorClassName][$strAccessedClassName])) {
+        if (!is_array(self::$hashObjectsAccesses[$strType][$strAccessorClassName][$strAccessedClassName])) {
             return false;
         }
 
-        if (!array_key_exists($objAccessedObject->getID(), self::$hashObjectsAccesses[$strAccessorClassName][$strAccessedClassName])) {
+        if (!array_key_exists($objAccessedObject->getID(), self::$hashObjectsAccesses[$strType][$strAccessorClassName][$strAccessedClassName])) {
             return false;
         }
 
-        return self::shareANDBits($intLevel, self::$hashObjectsAccesses[$strAccessorClassName][$strAccessedClassName][$objAccessedObject->getID()]);
+        return self::shareANDBits($intLevel, self::$hashObjectsAccesses[$strType][$strAccessorClassName][$strAccessedClassName][$objAccessedObject->getID()]);
     }
 
     /**
